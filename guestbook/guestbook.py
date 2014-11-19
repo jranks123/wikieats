@@ -14,7 +14,7 @@ MAIN_PAGE_HTML = """\
 """
 
 
-"""FUCK YOU JONNY!!"""
+"""FUCK YOU JONNY!!""" trololol
 
 
 
