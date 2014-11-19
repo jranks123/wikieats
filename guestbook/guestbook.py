@@ -13,6 +13,12 @@ MAIN_PAGE_HTML = """\
 </html>
 """
 
+
+"""FUCK YOU JONNY!!"""
+
+
+
+
 class MainPage(webapp2.RequestHandler):
     def get(self):
         self.response.write(MAIN_PAGE_HTML)
