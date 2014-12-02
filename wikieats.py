@@ -25,7 +25,7 @@ STORY_PAGE_FOOTER_TEMPLATE = """\
 	<form>Title:
       <input name="story_title">
     </form>
-    <form action="/sign?%s" method="post">Body:
+    <form action="/poststory" method="post">Body:
       <div><textarea name="story_body" rows="3" cols="60"></textarea></div>
       <div><input type="submit" value="ADD STORY"></div>
     </form>
@@ -45,9 +45,9 @@ def guestbook_key(guestbook_name=DEFAULT_GUESTBOOK_NAME):
     """Constructs a Datastore key for a Guestbook entity with guestbook_name."""
     return ndb.Key('Guestbook', guestbook_name)
 	
-def storybook_key(guestbook_name=DEFAULT_STORY_TITLE):
+def storybook_key(storybook_title=DEFAULT_STORY_TITLE):
     """Constructs a Datastore key for a Guestbook entity with guestbook_name."""
-    return ndb.Key('Storybook', storybook_title)
+    return ndb.Key('Storybook', story_title)
 
 class Greeting(ndb.Model):
     """Models an individual Guestbook entry."""
@@ -55,7 +55,7 @@ class Greeting(ndb.Model):
     content = ndb.StringProperty(indexed=False)
     date = ndb.DateTimeProperty(auto_now_add=True)
 
-class StoryMod(ndb.Model):
+class Story(ndb.Model):
 	title = ndb.StringProperty()
 	body = ndb.TextProperty()
 	created = ndb.DateTimeProperty(auto_now_add=True)
@@ -64,10 +64,14 @@ class AddStory(webapp2.RequestHandler):
 	def get(self):
 		self.response.write('<html><body>')
 		self.response.write(STORY_PAGE_FOOTER_TEMPLATE) 
+	
+class postStory(webapp2.RequestHandler):
 	def post(self):
 		s = Story()
-		s.title = story_title
-		s.body = story_body
+		s.title = self.request.get('story_title')
+		s.body = self.request.get('story_body')
+		s.put()
+		self.redirect('/addstory')
 		
 class MainPage(webapp2.RequestHandler):
     def get(self):
@@ -129,4 +133,5 @@ application = webapp2.WSGIApplication([
     ('/', MainPage),
     ('/sign', Guestbook),
     ('/addstory', AddStory),
+	('/poststory', postStory),
 ], debug=True)
