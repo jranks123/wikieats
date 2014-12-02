@@ -14,12 +14,10 @@ MAIN_PAGE_HTML = """\
 """
 
 
-"""FUCK YOU JONNY!!"""
+<<<<<<< HEAD
 
-
-
-H
-
+=======
+>>>>>>> b7a841b4cd5cbd33ba3e552950bc2a042aacefaa
 
 
 
