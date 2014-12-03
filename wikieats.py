@@ -5,6 +5,7 @@ from google.appengine.api import users
 from google.appengine.ext import ndb
 from google.appengine.ext import blobstore
 from google.appengine.ext.webapp import blobstore_handlers
+from google.appengine.ext.webapp.util import run_wsgi_app
 import webapp2
 
 MAIN_PAGE_TEMPLATE = """\
@@ -100,8 +101,9 @@ class Restaurant(ndb.Model):
 
 class photo(ndb.Model):
     rating = ndb.IntegerProperty(required=True)
-    date = ndb.DateTimeProperty(auto_now_add = True)
-    comment = ndb.StringProperty(requred=False)
+    created = ndb.DateTimeProperty(auto_now_add = True)
+    review = ndb.StringProperty(required=False)
+    blob_key = blobstore.BlobReferenceProperty()
 
 
 
@@ -170,15 +172,33 @@ class uploadPhotoPage(webapp2.RequestHandler):
         self.response.out.write('<html><body>')
         self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
         self.response.out.write("""Upload File: 
-                <input type="file" name="file"><br> <input type="submit"
-                name="submit" value="Submit"> </form></body></html>""")
+                <input type="file" name="file"><br> 
+                Review<div><textarea name="review" rows="3" cols="60"></textarea></div>
+                Rating:
+                <div>
+                    <select name="rating">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+                <input type="submit"name="submit" value="Submit"> 
+                </form></body></html>""")
 
 class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        # 'file' is file upload field in the form
-        upload_files = self.get_uploads('file')
-        blob_info = upload_files[0]
-        self.redirect('/serve/%s' % blob_info.key())
+        self.response.write('</b>')
+        #try:
+            #upload = self.get_uploads()[0]
+         #   user_photo = photo(blob_key=upload.key())
+         #   db.put(user_photo)
+         #   self.redirect('/view_photo/%s' % upload.key())
+
+        #   except:
+        #    self.redirect('/upload_failure.html')files[0]
+      #  self.redirect('/serve/%s' % blob_info.key())
 
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
     def get(self, resource):
