@@ -9,10 +9,30 @@ import webapp2
 
 MAIN_PAGE_TEMPLATE = """\
 		</p></p>
-		<a href="/addrestaurant">Add a Restaurant to the datastore</a>
+		<a href="addNew">Add new photo</a>
+        <p></p>
+        <a href="browse">Browse resteraunts</a>
 	</body>
 </html>
 """
+
+
+
+SEARCH_RESTAURANT_TEMPLATE = """\
+    <html>
+        <body>
+            <form action="/submitSearchRestaurant" method="post">
+                Restaurant Name:<br>
+                <input type="text" name="rest_name" value="">
+                <br>
+                <input type="submit" value="Submit">
+            </form>  
+        </body>
+    </html>
+    """
+
+#<a href="/addrestaurant">Add a Restaurant to the datastore</a>
+
 
 ADD_RESTAURANT_TEMPLATE = """\
 <html>
@@ -76,6 +96,8 @@ class Restaurant(ndb.Model):
 	phone = ndb.StringProperty(required=False)
 	created = ndb.DateTimeProperty(auto_now_add=True)
 
+
+
 class MainPage(webapp2.RequestHandler):
 	def get(self):
 		self.response.write('<html><body>')
@@ -93,6 +115,25 @@ class MainPage(webapp2.RequestHandler):
 class AddRestaurant(webapp2.RequestHandler):
 	def get(self):
 		self.response.write(ADD_RESTAURANT_TEMPLATE)
+
+class searchRestaurant(webapp2.RequestHandler):
+    def get(self):
+        self.response.write(SEARCH_RESTAURANT_TEMPLATE)
+
+class submitSearchRestaurant(webapp2.RequestHandler):
+    def post(self):
+        name = self.request.get('rest_name')
+        check = False
+        result = Restaurant.query(Restaurant.name == name)
+        self.response.out.write('<html><body>')
+        for r in result:
+            check = True
+            self.response.write(r.name)
+        if check == False:
+            self.response.write('<a href="/addrestaurant">Sorry we could not find your restaurant, click here to add a new restaurant</a>')
+
+             
+    
 	
 class PostRestaurant(webapp2.RequestHandler):
 	def post(self):
@@ -141,6 +182,8 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
 application = webapp2.WSGIApplication([
     ('/', MainPage),
+    ('/addNew', searchRestaurant),
+    ('/submitSearchRestaurant', submitSearchRestaurant),
     ('/addrestaurant', AddRestaurant),
 	('/postrestaurant', PostRestaurant),
 	('/displayrestaurant', MainPage),
