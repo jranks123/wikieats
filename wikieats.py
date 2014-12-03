@@ -6,132 +6,119 @@ from google.appengine.ext import ndb
 
 import webapp2
 
-MAIN_PAGE_FOOTER_TEMPLATE = """\
-    <form action="/sign?%s" method="post">
-      <div><textarea name="content" rows="3" cols="60"></textarea></div>
-      <div><input type="submit" value="Sign Guestbook"></div>
-    </form>
-    <hr>
-    <form>Guestbook name:
-      <input value="%s" name="guestbook_name">
-      <input type="submit" value="switch">
-    </form>
-    <a href="%s">%s</a>
-  </body>
+MAIN_PAGE_TEMPLATE = """\
+		</p></p>
+		<a href="/addrestaurant">Add a Restaurant to the datastore</a>
+	</body>
 </html>
 """
 
-STORY_PAGE_FOOTER_TEMPLATE = """\
-	<form>Title:
-      <input name="story_title">
-    </form>
-    <form action="/poststory" method="post">Body:
-      <div><textarea name="story_body" rows="3" cols="60"></textarea></div>
-      <div><input type="submit" value="ADD STORY"></div>
-    </form>
-  </body>
+ADD_RESTAURANT_TEMPLATE = """\
+<html>
+	<body>
+		<form action="/postrestaurant" method="post">
+			Name:<div><input name="rest_name"></div>
+			Cuisine:
+			<div>
+				<select name="rest_type">
+					<option value="indian">Indian</option>
+					<option value="pizza">Pizza</option>
+					<option value="chinese">Chinese</option>
+					<option value="kebab">Kebab</option>
+					<option value="italian">Italian</option>
+					<option value="fishandchips">Fish & Chips</option>
+					<option value="america">American</option>
+					<option value="chicken">Chicken</option>
+					<option value="carribean">Carribean</option>
+				</select>
+			</div>
+			City:<div><input name="rest_city"></div>
+			Postcode:<div><input name="rest_postcode"></div>
+			Phone Number:<div><input name="rest_phone"></div>
+			<div><input type="submit" value="ADD RESTAURANT"></div>
+		</form>
+	</body>
 </html>
 """
 
+EDIT_RESTAURANT_TEMPLATE = """\
+		<form action="/postrestaurant" method="post">
+			Name:<div><input value="%s" name="rest_name"></div>
+			Cuisine:
+			<div>
+				<select name="rest_type">
+					<option value="indian">Indian</option>
+					<option value="pizza">Pizza</option>
+					<option value="chinese">Chinese</option>
+					<option value="kebab">Kebab</option>
+					<option value="italian">Italian</option>
+					<option value="fishandchips">Fish & Chips</option>
+					<option value="america">American</option>
+					<option value="chicken">Chicken</option>
+					<option value="carribean">Carribean</option>
+				</select>
+			</div>
+			City:<div><input value="%s" name="rest_city"></div>
+			Postcode:<div><input value="%s" name="rest_postcode"></div>
+			Phone Number:<div><input value="%s" name="rest_phone"></div>
+			<div><input type="submit" value="ADD RESTAURANT"></div>
+		</form>
+	</body>
+</html>
+"""
 
-DEFAULT_GUESTBOOK_NAME = 'default_guestbook'
-DEFAULT_STORY_TITLE = 'DEFAULT TITLE'
-
-# We set a parent key on the 'Greetings' to ensure that they are all in the same
-# entity group. Queries across the single entity group will be consistent.
-# However, the write rate should be limited to ~1/second.
-
-def guestbook_key(guestbook_name=DEFAULT_GUESTBOOK_NAME):
-    """Constructs a Datastore key for a Guestbook entity with guestbook_name."""
-    return ndb.Key('Guestbook', guestbook_name)
-	
-def storybook_key(storybook_title=DEFAULT_STORY_TITLE):
-    """Constructs a Datastore key for a Guestbook entity with guestbook_name."""
-    return ndb.Key('Storybook', story_title)
-
-class Greeting(ndb.Model):
-    """Models an individual Guestbook entry."""
-    author = ndb.UserProperty()
-    content = ndb.StringProperty(indexed=False)
-    date = ndb.DateTimeProperty(auto_now_add=True)
-
-class Story(ndb.Model):
-	title = ndb.StringProperty()
-	body = ndb.TextProperty()
+class Restaurant(ndb.Model):
+	name = ndb.StringProperty(required=True)
+	cuisine = ndb.StringProperty(required=True)
+	city = ndb.StringProperty(required=True)
+	postcode = ndb.StringProperty(required=False)
+	phone = ndb.StringProperty(required=False)
 	created = ndb.DateTimeProperty(auto_now_add=True)
-	
-class AddStory(webapp2.RequestHandler):
+
+class MainPage(webapp2.RequestHandler):
 	def get(self):
 		self.response.write('<html><body>')
-		self.response.write(STORY_PAGE_FOOTER_TEMPLATE) 
-	
-class postStory(webapp2.RequestHandler):
-	def post(self):
-		s = Story()
-		s.title = self.request.get('story_title')
-		s.body = self.request.get('story_body')
-		s.put()
-		self.redirect('/addstory')
+		restaurants = Restaurant.query()
 		
-class MainPage(webapp2.RequestHandler):
-    def get(self):
-        self.response.write('<html><body>')
-        guestbook_name = self.request.get('guestbook_name',
-                                          DEFAULT_GUESTBOOK_NAME)
-
-        # Ancestor Queries, as shown here, are strongly consistent with the High
-        # Replication Datastore. Queries that span entity groups are eventually
-        # consistent. If we omitted the ancestor from this query there would be
-        # a slight chance that Greeting that had just been written would not
-        # show up in a query.
-        greetings_query = Greeting.query(
-            ancestor=guestbook_key(guestbook_name)).order(-Greeting.date)
-        greetings = greetings_query.fetch(10)
+		for r in restaurants:
+			self.response.write(r.name)
+			self.response.write('<form action="/displayrestaurant" method="get"><input type="submit" value="View"></form>')
 			
-        for greeting in greetings:
-            if greeting.author:
-                self.response.write(
-                        '<b>%s</b> wrote:' % greeting.author.nickname())
-            else:
-                self.response.write('An anonymous person wrote:')
-            self.response.write('<blockquote>%s</blockquote>' %
-                                cgi.escape(greeting.content))
+			self.response.write('<form action="/editrestaurant" method="get"><input type="submit" value="Edit"></form>')
+			self.response.write('</p>')
+		
+		self.response.write(MAIN_PAGE_TEMPLATE) 
 
-        if users.get_current_user():
-            url = users.create_logout_url(self.request.uri)
-            url_linktext = 'Logout'
-        else:
-            url = users.create_login_url(self.request.uri)
-            url_linktext = 'Login'
-
-        # Write the submission form and the footer of the page
-        sign_query_params = urllib.urlencode({'guestbook_name': guestbook_name})
-        self.response.write(MAIN_PAGE_FOOTER_TEMPLATE %
-                            (sign_query_params, cgi.escape(guestbook_name),
-                             url, url_linktext))
-
-class Guestbook(webapp2.RequestHandler):
-    def post(self):
-        # We set the same parent key on the 'Greeting' to ensure each Greeting
-        # is in the same entity group. Queries across the single entity group
-        # will be consistent. However, the write rate to a single entity group
-        # should be limited to ~1/second.
-        guestbook_name = self.request.get('guestbook_name',
-                                          DEFAULT_GUESTBOOK_NAME)
-        greeting = Greeting(parent=guestbook_key(guestbook_name))
-
-        if users.get_current_user():
-            greeting.author = users.get_current_user()
-
-        greeting.content = self.request.get('content')
-        greeting.put()
-
-        query_params = {'guestbook_name': guestbook_name}
-        self.redirect('/?' + urllib.urlencode(query_params))
+class AddRestaurant(webapp2.RequestHandler):
+	def get(self):
+		self.response.write(ADD_RESTAURANT_TEMPLATE)
+	
+class PostRestaurant(webapp2.RequestHandler):
+	def post(self):
+		r = Restaurant()
+		r.name = self.request.get('rest_name')
+		r.cuisine = self.request.get('rest_type')
+		r.city = self.request.get('rest_city')
+		r.postcode = self.request.get('rest_postcode')
+		r.phone = self.request.get('rest_phone')
+		r.put()
+		self.redirect('/')
+		
+class DisplayRestaurant(webapp2.RequestHandler):
+	def get(self):
+		self.response.write('<html><body><b>')
+		self.response.write(r.name)
+		self.response.write('</b>')
+		
+class EditRestaurant(webapp2.RequestHandler):
+	def get(self):
+		self.response.write('<html><body>')
+		self.response.write(EDIT_RESTAURANT_TEMPLATE)
 
 application = webapp2.WSGIApplication([
     ('/', MainPage),
-    ('/sign', Guestbook),
-    ('/addstory', AddStory),
-	('/poststory', postStory),
+    ('/addrestaurant', AddRestaurant),
+	('/postrestaurant', PostRestaurant),
+	('/displayrestaurant', MainPage),
+	('/editrestaurant', MainPage),
 ], debug=True)
