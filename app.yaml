@@ -8,6 +8,6 @@ handlers:
 - url: /.*
   script: wikieats.application
   
-  libraries:
+libraries:
 - name: webapp2
   version: latest
