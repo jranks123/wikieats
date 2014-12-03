@@ -99,11 +99,7 @@ class Restaurant(ndb.Model):
 
 
 
-class photo(ndb.Model):
-    rating = ndb.IntegerProperty(required=True)
-    created = ndb.DateTimeProperty(auto_now_add = True)
-    review = ndb.StringProperty(required=False)
-    blob_key = blobstore.BlobReferenceProperty()
+
 
 
 
@@ -166,6 +162,7 @@ class EditRestaurant(webapp2.RequestHandler):
 		self.response.write('<html><body>')
 		self.response.write(EDIT_RESTAURANT_TEMPLATE)
 
+
 class uploadPhotoPage(webapp2.RequestHandler):
     def get(self):
         upload_url = blobstore.create_upload_url('/upload')
@@ -187,18 +184,24 @@ class uploadPhotoPage(webapp2.RequestHandler):
                 <input type="submit"name="submit" value="Submit"> 
                 </form></body></html>""")
 
+class photo(ndb.Model):
+    rating = ndb.IntegerProperty(required=True)
+    created = ndb.DateTimeProperty(auto_now_add = True)
+    review = ndb.StringProperty(required=False)
+    blob_key = ndb.BlobKeyProperty(required=False)
+
 class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        self.response.write('</b>')
-        #try:
-            #upload = self.get_uploads()[0]
-         #   user_photo = photo(blob_key=upload.key())
-         #   db.put(user_photo)
-         #   self.redirect('/view_photo/%s' % upload.key())
-
-        #   except:
-        #    self.redirect('/upload_failure.html')files[0]
-      #  self.redirect('/serve/%s' % blob_info.key())
+        self.response.out.write('<html><body>')
+        # 'file' is file upload field in the form
+        upload_files = self.get_uploads()
+        blob_info = upload_files[0]
+        r = photo()
+        r.rating = int(self.request.get('rating'))
+        r.review = self.request.get('review')
+        r.blob_key = blob_info.key()
+        r.put()
+        self.redirect('/serve/%s' % blob_info.key())
 
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
     def get(self, resource):
