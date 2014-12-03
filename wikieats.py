@@ -11,7 +11,9 @@ MAIN_PAGE_TEMPLATE = """\
 		</p></p>
 		<a href="addNew">Add new photo</a>
         <p></p>
-        <a href="browse">Browse resteraunts</a>
+        <a href="Browse">Browse resteraunts</a>
+        <p></p>
+        <a href="/adddish">Add New Dish</a>
 	</body>
 </html>
 """
@@ -88,6 +90,20 @@ EDIT_RESTAURANT_TEMPLATE = """\
 </html>
 """
 
+ADD_DISH_TEMPLATE = """\
+<html>
+	<body>
+		<form action="/postdish" method="post">
+			Name:<div><input name="dish_name"></div>
+			Price (&pound): <div><input name="dish_price"></div>
+			Average Rating:<div><input name="avg_rate"></div>
+			Restaurant:<div><input name="rest_name"></div>
+			<div><input type="submit" value="ADD DISH"></div>
+		</form>
+	</body>
+</html>
+"""
+
 class Restaurant(ndb.Model):
 	name = ndb.StringProperty(required=True)
 	cuisine = ndb.StringProperty(required=True)
@@ -96,7 +112,10 @@ class Restaurant(ndb.Model):
 	phone = ndb.StringProperty(required=False)
 	created = ndb.DateTimeProperty(auto_now_add=True)
 
-
+class Dish(ndb.Model):
+	name = ndb.StringProperty(required=True)
+	price = ndb.StringProperty(required=False)
+	rating = ndb.StringProperty(required=False)
 
 class MainPage(webapp2.RequestHandler):
 	def get(self):
@@ -115,7 +134,18 @@ class MainPage(webapp2.RequestHandler):
 class AddRestaurant(webapp2.RequestHandler):
 	def get(self):
 		self.response.write(ADD_RESTAURANT_TEMPLATE)
-
+	
+class PostRestaurant(webapp2.RequestHandler):
+	def post(self):
+		r = Restaurant()
+		r.name = self.request.get('rest_name')
+		r.cuisine = self.request.get('rest_type')
+		r.city = self.request.get('rest_city')
+		r.postcode = self.request.get('rest_postcode')
+		r.phone = self.request.get('rest_phone')
+		r.put()
+		self.redirect('/')
+		
 class searchRestaurant(webapp2.RequestHandler):
     def get(self):
         self.response.write(SEARCH_RESTAURANT_TEMPLATE)
@@ -132,20 +162,6 @@ class submitSearchRestaurant(webapp2.RequestHandler):
         if check == False:
             self.response.write('<a href="/addrestaurant">Sorry we could not find your restaurant, click here to add a new restaurant</a>')
 
-             
-    
-	
-class PostRestaurant(webapp2.RequestHandler):
-	def post(self):
-		r = Restaurant()
-		r.name = self.request.get('rest_name')
-		r.cuisine = self.request.get('rest_type')
-		r.city = self.request.get('rest_city')
-		r.postcode = self.request.get('rest_postcode')
-		r.phone = self.request.get('rest_phone')
-		r.put()
-		self.redirect('/')
-		
 class DisplayRestaurant(webapp2.RequestHandler):
 	def get(self):
 		self.response.write('<html><body><b>')
@@ -156,6 +172,25 @@ class EditRestaurant(webapp2.RequestHandler):
 	def get(self):
 		self.response.write('<html><body>')
 		self.response.write(EDIT_RESTAURANT_TEMPLATE)
+		
+class AddDish(webapp2.RequestHandler):
+	def get(self):
+		self.response.write(ADD_DISH_TEMPLATE)
+		
+class PostDish(webapp2.RequestHandler):
+	def post(self):
+	
+		#qry = Restaurant.query(Restaurant.name == 'rest_name')
+		#r = qry.fetch(1)
+		#d = Dish(parent = r.id())
+		
+		d = Dish()
+		d.name = self.request.get('dish_name')
+		d.price = self.request.get('dish_price')
+		d.rating = self.request.get('avg_rate')
+		
+		d.put()
+		self.redirect('/')
 
 class uploadPhotoPage(webapp2.RequestHandler):
     def get(self):
@@ -181,14 +216,16 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
 
 application = webapp2.WSGIApplication([
-    ('/', MainPage),
-    ('/addNew', searchRestaurant),
-    ('/submitSearchRestaurant', submitSearchRestaurant),
-    ('/addrestaurant', AddRestaurant),
+	('/', MainPage),
+	('/addNew', searchRestaurant),
+	('/submitSearchRestaurant', submitSearchRestaurant),
+	('/addrestaurant', AddRestaurant),
 	('/postrestaurant', PostRestaurant),
 	('/displayrestaurant', MainPage),
 	('/editrestaurant', MainPage),
-    ('/uploadPhotoPage', uploadPhotoPage),
-    ('/upload', UploadHandler),
-    ('/serve/([^/]+)?', ServeHandler),
+	('/adddish', AddDish),
+	('/postdish', PostDish),
+	('/uploadPhotoPage', uploadPhotoPage),
+	('/upload', UploadHandler),
+	('/serve/([^/]+)?', ServeHandler),
 ], debug=True)
