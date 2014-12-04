@@ -50,8 +50,9 @@ SEARCH_RESTAURANT_TEMPLATE = """\
 ADD_RESTAURANT_TEMPLATE = """\
 <html>
 	<body>
+        <a>Sorry we could not find that Restaurant. Please fill in the form below to add it</a>
 		<form action="/postrestaurant/%s" method="post">
-			Name:<div><input name="rest_name"></div>
+			Name:<div><input name="rest_name" value="%s"></div>
 			Cuisine:
 			<div>
 				<select name="rest_type">
@@ -71,6 +72,18 @@ ADD_RESTAURANT_TEMPLATE = """\
 			<div><input type="submit" value="ADD RESTAURANT"></div>
 		</form>
 	</body>
+</html>
+"""
+
+
+ADD_DISH_TEMPLATE = """\
+<html>
+    <body>
+        <form action="/postdish/%s/%s" method="post">
+            Name Of Dish:<div><input name="dish_name"></div>
+            <div><input type="submit" value="Add Dish"></div>
+        </form>
+    </body>
 </html>
 """
 
@@ -114,6 +127,11 @@ class Restaurant(ndb.Model):
 	created = ndb.DateTimeProperty(auto_now_add=True)
 
 
+class Dish(ndb.Model):
+    name = ndb.StringProperty(required=True)
+    price = ndb.StringProperty(required=False)
+
+
 class photo(ndb.Model):
     rating = ndb.IntegerProperty(required=True)
     created = ndb.DateTimeProperty(auto_now_add = True)
@@ -126,20 +144,20 @@ class photo(ndb.Model):
 class MainPage(webapp2.RequestHandler):
 	def get(self):
 		self.response.write('<html><body>')
-		restaurants = Restaurant.query()
+		#restaurants = Restaurant.query()
 		
-		for r in restaurants:
-			self.response.write(r.name)
-			self.response.write('<form action="/displayrestaurant" method="get"><input type="submit" value="View"></form>')
+		#for r in restaurants:
+		#	self.response.write(r.name)
+		#	self.response.write('<form action="/displayrestaurant" method="get"><input type="submit" value="View"></form>')
 			
-			self.response.write('<form action="/editrestaurant" method="get"><input type="submit" value="Edit"></form>')
-			self.response.write('</p>')
+		#	self.response.write('<form action="/editrestaurant" method="get"><input type="submit" value="Edit"></form>')
+		#	self.response.write('</p>')
 		
 		self.response.write(MAIN_PAGE_TEMPLATE) 
 
 class AddRestaurant(webapp2.RequestHandler):
-	def get(self, resource):
-		self.response.write(ADD_RESTAURANT_TEMPLATE % resource)
+	def get(self, resource, name):
+		self.response.write(ADD_RESTAURANT_TEMPLATE % (resource, name))
 
 class searchRestaurant(webapp2.RequestHandler):
     def get(self):
@@ -155,13 +173,18 @@ class submitSearchRestaurant(webapp2.RequestHandler):
     def post(self, resource):
         name = self.request.get('rest_name')
         check = False
-        result = Restaurant.query(Restaurant.name == name)
+        #need to add in check for right city
+        result = Restaurant.query(ancestor = ndb.Key('City', int(resource))).filter(Restaurant.name == name)
         self.response.out.write('<html><body>')
-        for r in result:
-            check = True
-            self.response.write(r.name)
-        if check == False:
-            self.response.write('<a href="/addrestaurant/%s">Sorry we could not find your restaurant, click here to add a new restaurant</a>' % resource)
+        try:
+            for r in result:
+                check = True
+                self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
+            if check == False:
+                self.response.write(ADD_RESTAURANT_TEMPLATE % (resource, name))
+                
+        except:
+            self.response.write(ADD_RESTAURANT_TEMPLATE % (resource, name))
 
 
 class submitSearchCity(webapp2.RequestHandler):
@@ -191,6 +214,22 @@ class cityHandler(webapp2.RequestHandler):
         self.response.write(SEARCH_RESTAURANT_TEMPLATE % resource)
 
         
+class viewDish(webapp2.RequestHandler):
+    def get(self, city, rest):
+        self.response.out.write('<html><body>')
+        self.response.out.write('<a href="/addDish/%s/%s">Add Dish</a>' % (city, rest))
+
+class addDish(webapp2.RequestHandler):
+    def get(self, city, rest):
+        self.response.out.write(ADD_DISH_TEMPLATE % (city,rest))
+
+class postdish(webapp2.RequestHandler):
+    def post(self, city, rest):
+        rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
+        r = Dish(parent=rkey)
+        r.name = self.request.get('dish_name')
+        r.put()
+        self.redirect('/');
 
 
 class viewRestaurant(webapp2.RequestHandler):
@@ -207,7 +246,13 @@ class PostRestaurant(webapp2.RequestHandler):
 		r.postcode = self.request.get('rest_postcode')
 		r.phone = self.request.get('rest_phone')
 		r.put()
-		self.redirect('/')
+                check2 = False
+                while check2 == False:
+                    result = Restaurant.query(ancestor = ndb.Key('City', int(resource))).filter(Restaurant.name == r.name)
+                    for r in result:
+                        check2 = True
+                        self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
+
 		
 class DisplayRestaurant(webapp2.RequestHandler):
 	def get(self):
@@ -272,7 +317,7 @@ application = webapp2.WSGIApplication([
     ('/submitSearchRestaurant', submitSearchRestaurant),
     ('/viewRestaurant', viewRestaurant),
     ('/submitSearchCity', submitSearchCity),
-    ('/addrestaurant/([^/]+)?', AddRestaurant),
+    ('/addrestaurant/([^/]+)?/([^/]+)?', AddRestaurant),
 	('/postrestaurant/([^/]+)?', PostRestaurant),
 	('/displayrestaurant', MainPage),
 	('/editrestaurant', MainPage),
@@ -280,5 +325,8 @@ application = webapp2.WSGIApplication([
     ('/upload', UploadHandler),
     ('/serve/([^/]+)?', ServeHandler),
     ('/city/([^/]+)?', cityHandler),
+    ('/viewDish/([^/]+)?/([^/]+)?', viewDish),
+    ('/addDish/([^/]+)?/([^/]+)?', addDish),
+    ('/postdish/([^/]+)?/([^/]+)?', postdish),
     ('/submitSearchRestaurant/([^/]+)?', submitSearchRestaurant)
 ], debug=True)
