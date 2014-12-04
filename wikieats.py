@@ -218,7 +218,9 @@ class viewDish(webapp2.RequestHandler):
         rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
         self.response.out.write('<html><body>')
         result = Dish.query(ancestor = rkey)
-        self.response.out.write('<a href="/addDish/%s/%s">Add New Dish</a>' % (city, rest))
+        for r in result:
+            self.response.write('<a href=/uploadPhotoPage/%s/%s/%s>%s</a><br>' % (city, rest, r.key.id(), r.name))
+        self.response.out.write('<button><a href="/addDish/%s/%s">Cant see what your looking for/ Click here to add a new dish</a></button>' % (city, rest))
 
 class addDish(webapp2.RequestHandler):
     def get(self, city, rest):
