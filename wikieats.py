@@ -34,7 +34,7 @@ SEARCH_CITY_TEMPLATE = """\
 SEARCH_RESTAURANT_TEMPLATE = """\
     <html>
         <body>
-            <form action="/submitSearchRestaurant" method="post">
+            <form action="/submitSearchRestaurant/%s" method="post">
                 Restaurant Name:<br>
                 <input type="text" name="rest_name" value="">
                 <br>
@@ -50,7 +50,7 @@ SEARCH_RESTAURANT_TEMPLATE = """\
 ADD_RESTAURANT_TEMPLATE = """\
 <html>
 	<body>
-		<form action="/postrestaurant" method="post">
+		<form action="/postrestaurant/%s" method="post">
 			Name:<div><input name="rest_name"></div>
 			Cuisine:
 			<div>
@@ -66,7 +66,6 @@ ADD_RESTAURANT_TEMPLATE = """\
 					<option value="carribean">Carribean</option>
 				</select>
 			</div>
-			City:<div><input name="rest_city"></div>
 			Postcode:<div><input name="rest_postcode"></div>
 			Phone Number:<div><input name="rest_phone"></div>
 			<div><input type="submit" value="ADD RESTAURANT"></div>
@@ -139,8 +138,8 @@ class MainPage(webapp2.RequestHandler):
 		self.response.write(MAIN_PAGE_TEMPLATE) 
 
 class AddRestaurant(webapp2.RequestHandler):
-	def get(self):
-		self.response.write(ADD_RESTAURANT_TEMPLATE)
+	def get(self, resource):
+		self.response.write(ADD_RESTAURANT_TEMPLATE % resource)
 
 class searchRestaurant(webapp2.RequestHandler):
     def get(self):
@@ -153,7 +152,7 @@ class searchCity(webapp2.RequestHandler):
 
 
 class submitSearchRestaurant(webapp2.RequestHandler):
-    def post(self):
+    def post(self, resource):
         name = self.request.get('rest_name')
         check = False
         result = Restaurant.query(Restaurant.name == name)
@@ -162,7 +161,7 @@ class submitSearchRestaurant(webapp2.RequestHandler):
             check = True
             self.response.write(r.name)
         if check == False:
-            self.response.write('<a href="/addrestaurant">Sorry we could not find your restaurant, click here to add a new restaurant</a>')
+            self.response.write('<a href="/addrestaurant/%s">Sorry we could not find your restaurant, click here to add a new restaurant</a>' % resource)
 
 
 class submitSearchCity(webapp2.RequestHandler):
@@ -189,7 +188,7 @@ class submitSearchCity(webapp2.RequestHandler):
 
 class cityHandler(webapp2.RequestHandler):
     def get(self, resource):
-        self.response.write(SEARCH_RESTAURANT_TEMPLATE)
+        self.response.write(SEARCH_RESTAURANT_TEMPLATE % resource)
 
         
 
@@ -201,11 +200,10 @@ class viewRestaurant(webapp2.RequestHandler):
 
 	
 class PostRestaurant(webapp2.RequestHandler):
-	def post(self):
-		r = Restaurant()
+	def post(self, resource):
+		r = Restaurant(parent=ndb.Key('City', int(resource)))
 		r.name = self.request.get('rest_name')
 		r.cuisine = self.request.get('rest_type')
-		r.city = self.request.get('rest_city')
 		r.postcode = self.request.get('rest_postcode')
 		r.phone = self.request.get('rest_phone')
 		r.put()
@@ -274,12 +272,13 @@ application = webapp2.WSGIApplication([
     ('/submitSearchRestaurant', submitSearchRestaurant),
     ('/viewRestaurant', viewRestaurant),
     ('/submitSearchCity', submitSearchCity),
-    ('/addrestaurant', AddRestaurant),
-	('/postrestaurant', PostRestaurant),
+    ('/addrestaurant/([^/]+)?', AddRestaurant),
+	('/postrestaurant/([^/]+)?', PostRestaurant),
 	('/displayrestaurant', MainPage),
 	('/editrestaurant', MainPage),
     ('/uploadPhotoPage', uploadPhotoPage),
     ('/upload', UploadHandler),
     ('/serve/([^/]+)?', ServeHandler),
     ('/city/([^/]+)?', cityHandler),
+    ('/submitSearchRestaurant/([^/]+)?', submitSearchRestaurant)
 ], debug=True)
