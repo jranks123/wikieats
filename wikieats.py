@@ -213,11 +213,12 @@ class cityHandler(webapp2.RequestHandler):
     def get(self, resource):
         self.response.write(SEARCH_RESTAURANT_TEMPLATE % resource)
 
-        
 class viewDish(webapp2.RequestHandler):
     def get(self, city, rest):
+        rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
         self.response.out.write('<html><body>')
-        self.response.out.write('<a href="/addDish/%s/%s">Add Dish</a>' % (city, rest))
+        result = Dish.query(ancestor = rkey)
+        self.response.out.write('<a href="/addDish/%s/%s">Add New Dish</a>' % (city, rest))
 
 class addDish(webapp2.RequestHandler):
     def get(self, city, rest):
@@ -229,7 +230,15 @@ class postdish(webapp2.RequestHandler):
         r = Dish(parent=rkey)
         r.name = self.request.get('dish_name')
         r.put()
-        self.redirect('/');
+        check = False
+        while check == False:
+            result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
+            for r in result:
+                check = True
+                self.redirect('/uploadPhotoPage/%s/%s/%s' % (city, rest, r.key.id()))
+
+
+
 
 
 class viewRestaurant(webapp2.RequestHandler):
@@ -267,8 +276,8 @@ class EditRestaurant(webapp2.RequestHandler):
 
 
 class uploadPhotoPage(webapp2.RequestHandler):
-    def get(self):
-        upload_url = blobstore.create_upload_url('/upload')
+    def get(self, city, rest, dish):
+        upload_url = blobstore.create_upload_url('/upload/%s/%s/%s' % (city, rest, dish))
         self.response.out.write('<html><body>')
         self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
         self.response.out.write("""Upload File: 
@@ -290,17 +299,20 @@ class uploadPhotoPage(webapp2.RequestHandler):
 
 
 class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
-    def post(self):
+    def post(self, city, rest, dish):
          try:
             # 'file' is file upload field in the form
             upload_files = self.get_uploads()
             blob_info = upload_files[0]
-            r = photo()
+            rkey = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
+            r = photo(parent = rkey)
             r.rating = int(self.request.get('rating'))
             r.review = self.request.get('review')
             r.blob_key = blob_info.key()
             r.put()
-            self.redirect('/serve/%s' % blob_info.key())
+            #this will serve the photo on the whole page
+            #self.redirect('/serve/%s' % blob_info.key())
+            self.redirect('/')
          except:
             self.redirect('/')
 
@@ -321,8 +333,8 @@ application = webapp2.WSGIApplication([
 	('/postrestaurant/([^/]+)?', PostRestaurant),
 	('/displayrestaurant', MainPage),
 	('/editrestaurant', MainPage),
-    ('/uploadPhotoPage', uploadPhotoPage),
-    ('/upload', UploadHandler),
+    ('/uploadPhotoPage/([^/]+)?/([^/]+)?/([^/]+)?', uploadPhotoPage),
+    ('/upload/([^/]+)?/([^/]+)?/([^/]+)?', UploadHandler),
     ('/serve/([^/]+)?', ServeHandler),
     ('/city/([^/]+)?', cityHandler),
     ('/viewDish/([^/]+)?/([^/]+)?', viewDish),
