@@ -17,6 +17,18 @@ MAIN_PAGE_TEMPLATE = """\
 </html>
 """
 
+SEARCH_CITY_TEMPLATE = """\
+    <html>
+        <body>
+            <form action="/submitSearchCity" method="post">
+                City:<br>
+                <input type="text" name="city_name" value="">
+                <br>
+                <input type="submit" value="Submit">
+            </form>  
+        </body>
+    </html>
+    """
 
 
 SEARCH_RESTAURANT_TEMPLATE = """\
@@ -89,16 +101,25 @@ EDIT_RESTAURANT_TEMPLATE = """\
 </html>
 """
 
+class City(ndb.Model):
+    city = ndb.StringProperty(required=True)
+    created = ndb.DateTimeProperty(auto_now_add=True)
+
+
+
 class Restaurant(ndb.Model):
 	name = ndb.StringProperty(required=True)
 	cuisine = ndb.StringProperty(required=True)
-	city = ndb.StringProperty(required=True)
 	postcode = ndb.StringProperty(required=False)
 	phone = ndb.StringProperty(required=False)
 	created = ndb.DateTimeProperty(auto_now_add=True)
 
 
-
+class photo(ndb.Model):
+    rating = ndb.IntegerProperty(required=True)
+    created = ndb.DateTimeProperty(auto_now_add = True)
+    review = ndb.StringProperty(required=False)
+    blob_key = ndb.BlobKeyProperty(required=False)  
 
 
 
@@ -125,6 +146,12 @@ class searchRestaurant(webapp2.RequestHandler):
     def get(self):
         self.response.write(SEARCH_RESTAURANT_TEMPLATE)
 
+class searchCity(webapp2.RequestHandler):
+    def get(self):
+        self.response.write(SEARCH_CITY_TEMPLATE)
+
+
+
 class submitSearchRestaurant(webapp2.RequestHandler):
     def post(self):
         name = self.request.get('rest_name')
@@ -137,8 +164,41 @@ class submitSearchRestaurant(webapp2.RequestHandler):
         if check == False:
             self.response.write('<a href="/addrestaurant">Sorry we could not find your restaurant, click here to add a new restaurant</a>')
 
-             
-    
+
+class submitSearchCity(webapp2.RequestHandler):
+    def post(self):
+        city = self.request.get('city_name')
+        check = False
+        result = City.query(City.city == city)
+        self.response.out.write('<html><body>')
+        for r in result:
+            check = True
+            self.redirect('/city/%s' % r.key.id())
+        if check == False:
+            q = City()
+            q.city = self.request.get('city_name')
+            q.put()
+            check2 = False
+            while check2 == False:
+                result = City.query(City.city == city)
+                for r in result:
+                    check2 = True
+                    self.redirect('/city/%s' % r.key.id())
+                
+
+
+class cityHandler(webapp2.RequestHandler):
+    def get(self, resource):
+        self.response.write(SEARCH_RESTAURANT_TEMPLATE)
+
+        
+
+
+class viewRestaurant(webapp2.RequestHandler):
+    def get(self, resource):
+        self.response.out.write('<html><body>')
+        self.response.write(r.name)
+
 	
 class PostRestaurant(webapp2.RequestHandler):
 	def post(self):
@@ -184,24 +244,22 @@ class uploadPhotoPage(webapp2.RequestHandler):
                 <input type="submit"name="submit" value="Submit"> 
                 </form></body></html>""")
 
-class photo(ndb.Model):
-    rating = ndb.IntegerProperty(required=True)
-    created = ndb.DateTimeProperty(auto_now_add = True)
-    review = ndb.StringProperty(required=False)
-    blob_key = ndb.BlobKeyProperty(required=False)
+
 
 class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        self.response.out.write('<html><body>')
-        # 'file' is file upload field in the form
-        upload_files = self.get_uploads()
-        blob_info = upload_files[0]
-        r = photo()
-        r.rating = int(self.request.get('rating'))
-        r.review = self.request.get('review')
-        r.blob_key = blob_info.key()
-        r.put()
-        self.redirect('/serve/%s' % blob_info.key())
+         try:
+            # 'file' is file upload field in the form
+            upload_files = self.get_uploads()
+            blob_info = upload_files[0]
+            r = photo()
+            r.rating = int(self.request.get('rating'))
+            r.review = self.request.get('review')
+            r.blob_key = blob_info.key()
+            r.put()
+            self.redirect('/serve/%s' % blob_info.key())
+         except:
+            self.redirect('/')
 
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
     def get(self, resource):
@@ -212,8 +270,10 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
 
 application = webapp2.WSGIApplication([
     ('/', MainPage),
-    ('/addNew', searchRestaurant),
+    ('/addNew', searchCity),
     ('/submitSearchRestaurant', submitSearchRestaurant),
+    ('/viewRestaurant', viewRestaurant),
+    ('/submitSearchCity', submitSearchCity),
     ('/addrestaurant', AddRestaurant),
 	('/postrestaurant', PostRestaurant),
 	('/displayrestaurant', MainPage),
@@ -221,4 +281,5 @@ application = webapp2.WSGIApplication([
     ('/uploadPhotoPage', uploadPhotoPage),
     ('/upload', UploadHandler),
     ('/serve/([^/]+)?', ServeHandler),
+    ('/city/([^/]+)?', cityHandler),
 ], debug=True)
