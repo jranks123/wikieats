@@ -7,7 +7,11 @@ threadsafe: true
 handlers:
 - url: /.*
   script: wikieats.application
+<<<<<<< HEAD
+  
+=======
 
+>>>>>>> jonny
 libraries:
 - name: webapp2
   version: latest

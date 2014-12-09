@@ -234,15 +234,19 @@ class addDish(webapp2.RequestHandler):
 class postdish(webapp2.RequestHandler):
     def post(self, city, rest):
         rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
-        r = Dish(parent=rkey)
-        r.name = self.request.get('dish_name')
-        r.put()
-        check = False
-        while check == False:
-            result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
-            for r in result:
-                check = True
-                self.redirect('/uploadPhotoPage/%s/%s/%s' % (city, rest, r.key.id()))
+        #this ensures that an adversay cannot inject dishes to restaurants that do not exist in the database
+        if rkey.get() == None:
+            self.redirect('/')
+        else:
+            r = Dish(parent=rkey)
+            r.name = self.request.get('dish_name')
+            r.put()
+            check = False
+            while check == False:
+                result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
+                for r in result:
+                    check = True
+                    self.redirect('/uploadPhotoPage/%s/%s/%s' % (city, rest, r.key.id()))
 
 
 
@@ -253,21 +257,29 @@ class viewRestaurant(webapp2.RequestHandler):
         self.response.out.write('<html><body>')
         self.response.write(r.name)
 
-	
+
+
+
 class PostRestaurant(webapp2.RequestHandler):
-	def post(self, resource):
-		r = Restaurant(parent=ndb.Key('City', int(resource)))
-		r.name = self.request.get('rest_name')
-		r.cuisine = self.request.get('rest_type')
-		r.postcode = self.request.get('rest_postcode')
-		r.phone = self.request.get('rest_phone')
-		r.put()
-                check2 = False
-                while check2 == False:
-                    result = Restaurant.query(ancestor = ndb.Key('City', int(resource))).filter(Restaurant.name == r.name)
-                    for r in result:
-                        check2 = True
-                        self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
+    def post(self, resource):
+        rkey = ndb.Key('City', int(resource))
+        #this makes sure that adversary cannot insert restaurant into non-existing City in the database
+        if rkey.get() == None:
+            self.redirect('/')
+        else:
+            r = Restaurant(parent= rkey)
+            r.name = self.request.get('rest_name')
+            r.cuisine = self.request.get('rest_type')
+            r.postcode = self.request.get('rest_postcode')
+            r.phone = self.request.get('rest_phone')
+            r.put()
+            check2 = False
+            while check2 == False:
+                result = Restaurant.query(ancestor = ndb.Key('City', int(resource))).filter(Restaurant.name == r.name)
+                for r in result:
+                    check2 = True
+                    self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
+
 
 		
 class DisplayRestaurant(webapp2.RequestHandler):
