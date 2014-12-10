@@ -10,8 +10,27 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-- kind: Greeting
+- kind: City
+  properties:
+  - name: city
+
+- kind: Dish
   ancestor: yes
   properties:
-  - name: date
+  - name: name
+
+- kind: Photo
+  ancestor: yes
+  properties:
+  - name: created
+
+- kind: Photo
+  ancestor: yes
+  properties:
+  - name: created
     direction: desc
+
+- kind: Restaurant
+  ancestor: yes
+  properties:
+  - name: name
