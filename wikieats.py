@@ -9,20 +9,31 @@ from google.appengine.ext.webapp import blobstore_handlers
 from google.appengine.ext.webapp.util import run_wsgi_app
 import webapp2
 
-HEADER_TEMPLATE = """<html><body><div style="position: absolute; width: 99%; height: 100px; background: cyan;">Header</div>
-<div style="position: absolute; box-sizing:border-box; -moz-box-sizing:border-box; padding-top: 100px; padding-bottom: 50px; width: 99%; height: 99%;">"""
+HEADER_TEMPLATE = """
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="/styles/image_grid.css">
+		<link rel="stylesheet" type="text/css" href="/styles/star_rating.css">
+	</head>
+	<body>
+		<div style="position:fixed; left:0px; top:0px; height:100px; width:100%; background:lightgreen; z-index:10;">
+			<div style="padding:10px;">
+				<a href="/"><img src="/images/wikieats_logo.png" width="99px" height="99px"></a>
+			</div>
+		</div>
+		<div style="padding-top:110px; width:99%; height:99%;">"""
 
-FOOTER_TEMPLATE = """</div><div style="position: absolute; bottom: 0; background: lightgreen; width: 99%; height: 50px;">Footer</div></body></html>"""
+FOOTER_TEMPLATE = """
+		</div>
+		<div style="position:fixed; left:0px; bottom:0px; height:30px; width:100%; background:lightgreen;">Footer</div>
+	</body>
+</html>"""
 
 MAIN_PAGE_TEMPLATE = """\
-		</p></p>
-		<a href="addNew">Add new photo</a>
-        <p></p>
-        <a href="browse">Browse</a>
+	<a href="addNew">Add new photo</a>
+	<p></p>
+	<a href="browse">Browse</a>
 """
-
-
-
 
 SEARCH_RESTAURANT_TEMPLATE = """\
 	<form action="/submitSearchRestaurant/%s" method="post">
@@ -32,9 +43,6 @@ SEARCH_RESTAURANT_TEMPLATE = """\
 		<input type="submit" value="Submit">
 	</form>
 """
-
-
-
 
 ADD_RESTAURANT_TEMPLATE = """\
 	<a>Sorry we could not find that Restaurant. Please fill in the form below to add it</a>
@@ -59,7 +67,6 @@ ADD_RESTAURANT_TEMPLATE = """\
 		<div><input type="submit" value="ADD RESTAURANT"></div>
 	</form>
 """
-
 
 ADD_NEW_RESTAURANT_TEMPLATE = """\
 	<form action="/postrestaurant2/%s" method="post">
@@ -127,6 +134,7 @@ EDIT_RESTAURANT_TEMPLATE = """\
 """
 
 
+
 #####################################
 ########## DATABASE MODELS ##########
 #####################################
@@ -142,14 +150,14 @@ class Restaurant(ndb.Model):
 	created = ndb.DateTimeProperty(auto_now_add=True)
 
 class Dish(ndb.Model):
-    name = ndb.StringProperty(required=True)
-    price = ndb.StringProperty(required=False)
+	name = ndb.StringProperty(required=True)
+	price = ndb.StringProperty(required=False)
 
 class Photo(ndb.Model):
     rating = ndb.IntegerProperty(required=True)
     created = ndb.DateTimeProperty(auto_now_add = True)
     review = ndb.StringProperty(required=False)
-    blob_key = ndb.BlobKeyProperty(required=False)  
+    blob_key = ndb.BlobKeyProperty(required=False)
 
 
 ######################################
@@ -337,11 +345,45 @@ class DisplayDish(webapp2.RequestHandler):
 		check = False
 		self.response.write(HEADER_TEMPLATE)
 		
+		d = Dish.get_by_id(photo_key.id(), photo_key.parent())
+		self.response.write('<div style="display: inline-block; ">')
+		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%s</p></div>' % (d.name, d.price))
+		
+		# Calculate average rating
+		photos = Photo.query(ancestor=photo_key)
+		n = 0.0
+		for p in photos:
+			if p.rating:
+				n = n + p.rating
+		if photos.count() > 0:
+			avg_rating = n / (photos.count())
+			
+			self.response.write('<div style="float:left;display: inline-block; width: 200px;margin: auto; top: 0; bottom: 0;vertical-align: middle; padding:40px 0px;">')
+			i=0
+			while i <= avg_rating and i < 5:
+				if i  > 0 and i.is_integer():
+					self.response.write('<img src="/images/star.png" style="display:inline;" height="40px" width="40px">')
+				i = i + 0.5
+					
+			j = 5 - i
+			if j > 0:
+				if j.is_integer() == False:
+					self.response.write('<img src="/images/half_star.png" style="display:inline;" height="40px" width="40px">')
+					j = j - 0.5
+				for k in range(int(j)):
+					self.response.write('<img src="/images/star_off2.png" style="display:inline;" height="40px" width="40px">')
+			
+			self.response.write('</div></div>')
+			
+		
+		
+		self.response.write('<ul class="rig">')
 		for p in result:
 			check = True
 			blob_info = blobstore.BlobInfo.get(p.blob_key)
-			self.response.write('<img src="/serve/%s" height="500" width="500">' % (p.blob_key))
-				
+			self.response.write('<li><img src="/serve/%s" /><p>%s</p></li>' % (p.blob_key, p.review))
+		self.response.write('</ul>')
+		
 		if check == False:
 			self.response.write('No photos of this dish.')
 			
@@ -391,6 +433,7 @@ class PostDish2(webapp2.RequestHandler):
 			r = Dish(parent=rkey)
 			r.name = self.request.get('dish_name')
 			r.price = self.request.get('dish_price')
+			r.av_rating = 0.0
 			r.put()
 			check = False
 			while check == False:
@@ -409,41 +452,45 @@ class uploadPhotoPage(webapp2.RequestHandler):
 		self.response.write(HEADER_TEMPLATE)
 		self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
 		self.response.out.write("""Upload File: 
-                <input type="file" name="file"><br> 
+                <input type="file" name="file" required><br> 
                 Review<div><textarea name="review" rows="3" cols="60"></textarea></div>
                 Rating:
-                <div>
-                    <select name="rating">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </div>
+				<div class="rating">     
+					<input type="radio" name="stars" id="5_stars" value="5" >
+					<label class="stars" for="5_stars">5</label>
+					<input type="radio" name="stars" id="4_stars" value="4" >
+					<label class="stars" for="4_stars">4</label>
+					<input type="radio" name="stars" id="3_stars" value="3" >
+					<label class="stars" for="3_stars"></label>
+					<input type="radio" name="stars" id="2_stars" value="2" >
+					<label class="stars" for="2_stars"></label>
+					<input type="radio" name="stars" id="1_stars" value="1" >
+					<label class="stars" for="1_stars"></label>
+					<input type="radio" name="stars" id="0_stars" value="0" selected="selected">
+				</div>
+            
                 <input type="submit"name="submit" value="Submit"> 
                 </form>""")
 		self.response.write(FOOTER_TEMPLATE)
 
-
-
 class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self, city, rest, dish):
-         try:
-            # 'file' is file upload field in the form
-            upload_files = self.get_uploads()
-            blob_info = upload_files[0]
-            rkey = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
-            r = Photo(parent = rkey)
-            r.rating = int(self.request.get('rating'))
-            r.review = self.request.get('review')
-            r.blob_key = blob_info.key()
-            r.put()
-            #this will serve the photo on the whole page
-            #self.redirect('/serve/%s' % blob_info.key())
-            self.redirect('/browse/%s/%s/%s' % (city, rest, dish))
-         except:
-            self.redirect('/browse/%s/%s/%s' % (city, rest, dish))
+		try:
+		# 'file' is file upload field in the form
+			upload_files = self.get_uploads()
+			blob_info = upload_files[0]
+			rkey = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
+			r = Photo(parent = rkey)
+			r.review = self.request.get('review')
+			r.blob_key = blob_info.key()
+
+			rate = int(self.request.get('stars'))
+			if rate != 0:
+				r.rating = rate				
+			r.put()
+			self.redirect('/browse/%s/%s/%s' % (city, rest, dish))
+		except:
+			self.redirect('/browse/%s/%s/%s' % (city, rest, dish))
 
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
     def get(self, resource):
