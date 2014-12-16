@@ -1,3 +1,8 @@
+####THINGS TO DO#####
+
+#. change it so we don't have duplicate functions
+
+
 import cgi
 import urllib
 
@@ -196,6 +201,7 @@ class Dish(ndb.Model):
 	name = ndb.StringProperty(required=True)
 	price = ndb.StringProperty(required=True)
 	averageRating = ndb.FloatProperty(required=True)
+	numberOfPhotos = ndb.IntegerProperty(required=True)
 
 class Photo(ndb.Model):
     rating = ndb.IntegerProperty(required=True)
@@ -303,6 +309,7 @@ class postdish(webapp2.RequestHandler):
 			r.name = self.request.get('dish_name')
 			r.price = self.request.get('dish_price')
 			r.averageRating = 0.0
+			r.numberOfPhotos = 0.0
 			r.put()
 			check = False
 			while check == False:
@@ -378,7 +385,8 @@ class BrowseDishes(webapp2.RequestHandler):
 		self.response.write(HEADER_TEMPLATE)
 		for d in result:
 			check = True
-			self.response.write('<a href="/browse/%s/%s/%s">%s (&pound%s)</a></p></p>' % (city, rest, d.key.id(), d.name, d.price))
+			#Here we need to make it display stars instead of the number
+			self.response.write('<a href="/browse/%s/%s/%s">%s (&pound%s) - %.2f/5</a></p></p>' % (city, rest, d.key.id(), d.name, d.price, d.averageRating))
 		if check == False:
 			self.response.write('No dishes in this restaurant.')
 		self.response.write('</p><a href="/addnewdish/%s/%s"><input type="submit" value="ADD NEW DISH"></a>' % (city, rest))
@@ -414,8 +422,8 @@ class DisplayDish(webapp2.RequestHandler):
 			for k in range(int(j)):
 				self.response.write('<img src="/images/star_off2.png" style="display:inline;" height="40px" width="40px">')
 		
-		self.response.write('</div></div>')
-			
+
+		self.response.write('Based on %d ratings</div></div>' % d.numberOfPhotos)
 		
 		
 		self.response.write('<ul class="rig">')
@@ -477,6 +485,7 @@ class PostDish2(webapp2.RequestHandler):
 			r.name = self.request.get('dish_name')
 			r.price = self.request.get('dish_price')
 			r.averageRating = 0.0
+			r.numberOfPhotos = 0
 			r.put()
 			check = False
 			while check == False:
@@ -533,14 +542,17 @@ class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
 			q = rkey.get()
 			# Calculate average rating
 			photos = Photo.query(ancestor=rkey)
+			numberOfPhotos = 0
 			n = 0.0
 			avg_rating = 0
 			for p in photos:
 				if p.rating:
+					numberOfPhotos += 1
 					n = n + p.rating
 			if photos.count() > 0:
 				avg_rating = n / (photos.count())
 			q.averageRating = avg_rating
+			q.numberOfPhotos = numberOfPhotos
 			q.put()
 			self.redirect('/browse/%s/%s/%s' % (city, rest, dish))
 		except:
