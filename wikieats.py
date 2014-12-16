@@ -5,7 +5,8 @@
 
 import cgi
 import urllib
-
+import json
+import urllib2
 from google.appengine.api import users
 from google.appengine.ext import ndb
 from google.appengine.api import images
@@ -138,6 +139,15 @@ EDIT_RESTAURANT_TEMPLATE = """\
 	</form>
 """
 
+ENTER_POSTCODE_TEMPLATE = """\
+	<form action="/getPostcodeDistance" method="post">
+		Postcode1:<div><input name="postcode1" value = "RH2 7BS"></div>
+		Postcode2:<div><input name="postcode2" value = "BS6 5DQ"></div>
+		</p>
+		<div><input type="submit" value="Get Distance"></div>
+	</form>
+"""
+
 #####################################
 ############### ADMIN ###############
 #####################################
@@ -176,7 +186,25 @@ class clearDatabase(webapp2.RequestHandler):
 		self.redirect('/')
 
 
+class postcode(webapp2.RequestHandler):
+	def get(self):
+		self.response.write(HEADER_TEMPLATE)
+		self.response.write(ENTER_POSTCODE_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE)
 
+
+class getPostcodeDistance(webapp2.RequestHandler):
+	def post(self):
+		post1 = urllib.quote_plus(self.request.get('postcode1'))
+		post2 = urllib.quote_plus(self.request.get('postcode2'))
+		data = json.load(urllib2.urlopen('http://maps.googleapis.com/maps/api/distancematrix/json?origins='+post1+'&destinations='+post2+'&mode=driving&language=en-EN&sensor=false"'))
+		self.response.write(HEADER_TEMPLATE)
+		if(data["rows"][0]["elements"][0]["status"] == 'OK'):
+		#self.response.write(data)
+			self.response.write(data["rows"][0]["elements"][0]["distance"]["value"] * 0.000621371)
+		else:
+			self.response.write('invalid postcode')
+		self.response.write(FOOTER_TEMPLATE)
 
 
 #ndb.delete_multi(
@@ -193,7 +221,7 @@ class City(ndb.Model):
 class Restaurant(ndb.Model):
 	name = ndb.StringProperty(required=True)
 	cuisine = ndb.StringProperty(required=True)
-	postcode = ndb.StringProperty(required=False)
+	postcode = ndb.StringProperty(required=True)
 	phone = ndb.StringProperty(required=False)
 	created = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -620,6 +648,8 @@ application = webapp2.WSGIApplication([
 	('/admin', admin),
 	('/addAllCities', addAllCities),
 	('/clearDatabase', clearDatabase),
+	('/postcode', postcode),
+	('/getPostcodeDistance', getPostcodeDistance),
 
 	##### BROWSING #####
     ('/browse', BrowseCities),
