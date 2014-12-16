@@ -1,12 +1,15 @@
 ####THINGS TO DO#####
 
 #. change it so we don't have duplicate functions
-
+#. stop double submit when you upload a photo
+#. Add cuisine filters 
+#. parse any entered text to protect against XSS
 
 import cgi
 import urllib
 import json
 import urllib2
+import urlparse
 from google.appengine.api import users
 from google.appengine.ext import ndb
 from google.appengine.api import images
@@ -27,7 +30,7 @@ HEADER_TEMPLATE = """
 				<a href="/"><img src="/images/wikieats_logo.png" width="99px" height="99px"></a>
 			</div>
 		</div>
-		<div style="padding-top:110px; width:99%; height:99%;">"""
+		"""
 
 FOOTER_TEMPLATE = """
 		</div>
@@ -35,11 +38,67 @@ FOOTER_TEMPLATE = """
 	</body>
 </html>"""
 
+
+class BrowseCities(webapp2.RequestHandler):
+	def get(self):
+		self.response.write(HEADER_TEMPLATE)
+		cities = City.query().order(City.city)
+		self.response.write('<div style="position:fixed; left:0px; top:100px; height:35px; width:100%; background:black; z-index:10;">')
+		self.response.write('<div style ="position:relative; top:8px;"><form action="/selectcity" method="post"><div><select name="city_link">')
+		self.response.write('<option value="none">Select City</option>')
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write('</select>')
+		self.response.write('<select name="rest_type"> <option value="all">All Cuisines</option>')
+		self.response.write('<option value="indian">Indian</option>')
+		self.response.write('<option value="pizza">Pizza</option>')
+		self.response.write('<option value="chinese">Chinese</option>')
+		self.response.write('<option value="kebab">Kebab</option>')
+		self.response.write('<option value="italian">Italian</option>')
+		self.response.write('<option value="fishandchips">Fish & Chips</option>')
+		self.response.write('<option value="america">American</option>')
+		self.response.write('<option value="chicken">Chicken</option>')
+		self.response.write('<option value="carribean">Carribean</option>')
+		self.response.write('</select>')
+		self.response.write('</select><input type="submit" value="GO"></div></form></div></div>');
+		self.response.write('<div style="position:relative;"><a href="/"><< BACK</a><div>')
+		self.response.write(FOOTER_TEMPLATE)
+
+
+NAV_1 = """\
+	<div style="position:fixed; left:0px; top:100px; height:35px; width:100%; background:black; z-index:10;">
+		<div style ="position:relative; top:8px;">
+			<form action="/selectcity" method="post">
+				<select name="city_link">
+					<option value="none">Select City</option>
+	"""
+
+NAV_2 = """\
+				</select>
+				<select name="rest_type"> <option value="all">All Cuisines</option>
+					<option value="indian">Indian</option>
+					<option value="pizza">Pizza</option>
+					<option value="chinese">Chinese</option>
+					<option value="kebab">Kebab</option>
+					<option value="italian">Italian</option>
+					<option value="fishandchips">Fish & Chips</option>
+					<option value="america">American</option>
+					<option value="chicken">Chicken</option>
+					<option value="carribean">Carribean</option>
+				</select>
+				<input type="submit" value="GO">
+				</form></div></div>
+
+	"""
+
+
 MAIN_PAGE_TEMPLATE = """\
 	<a href="addNew">Add new photo</a>
 	<p></p>
 	<a href="browse">Browse</a>
 """
+
 
 SEARCH_RESTAURANT_TEMPLATE = """\
 	<form action="/submitSearchRestaurant/%s" method="post">
@@ -244,14 +303,12 @@ class Photo(ndb.Model):
 class MainPage(webapp2.RequestHandler):
 	def get(self):
 		self.response.write(HEADER_TEMPLATE)
-		#restaurants = Restaurant.query()
-		
-		#for r in restaurants:
-		#	self.response.write(r.name)
-		#	self.response.write('<form action="/displayrestaurant" method="get"><input type="submit" value="View"></form>')
-			
-		#	self.response.write('<form action="/editrestaurant" method="get"><input type="submit" value="Edit"></form>')
-		#	self.response.write('</p>')
+		cities = City.query().order(City.city)
+		self.response.write(NAV_1)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
 		
 		self.response.write(MAIN_PAGE_TEMPLATE)
 		self.response.write(FOOTER_TEMPLATE)
@@ -268,11 +325,21 @@ class searchCity(webapp2.RequestHandler):
 	def get(self):
 		self.response.write(HEADER_TEMPLATE)
 		cities = City.query().order(City.city)
-		
 		self.response.write('<form action="/selectcity2" method="post"><div><select name="city_link">')
 		for c in cities:
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write('</select><input type="submit" value="SUBMIT"></div></form>');
+			self.response.write('<option name = "city" value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write('</select>')
+		self.response.write('<select name="rest_type"> <option value="indian">Indian</option>')
+		self.response.write('<option value="pizza">Pizza</option>')
+		self.response.write('<option value="chinese">Chinese</option>')
+		self.response.write('<option value="kebab">Kebab</option>')
+		self.response.write('<option value="italian">Italian</option>')
+		self.response.write('<option value="fishandchips">Fish & Chips</option>')
+		self.response.write('<option value="america">American</option>')
+		self.response.write('<option value="chicken">Chicken</option>')
+		self.response.write('<option value="carribean">Carribean</option>')
+		self.response.write('</select>')
+		self.response.write('<input type="submit" value="SUBMIT"></div></form>');
 		self.response.write('<a href="/"><< BACK</a>')
 		self.response.write(FOOTER_TEMPLATE)
 		
@@ -374,19 +441,22 @@ class BrowseCities(webapp2.RequestHandler):
 	def get(self):
 		self.response.write(HEADER_TEMPLATE)
 		cities = City.query().order(City.city)
-		
-		self.response.write('<form action="/selectcity" method="post"><div><select name="city_link">')
+		self.response.write(NAV_1)
 		for c in cities:
 			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
 			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write('</select><input type="submit" value="GO"></div></form>');
-		self.response.write('<a href="/"><< BACK</a>')
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative;"><a href="/"><< BACK</a><div>')
 		self.response.write(FOOTER_TEMPLATE)
 		
 class SelectCity(webapp2.RequestHandler):
     def post(self):
 		city_link = self.request.get('city_link')
-		self.redirect('/browse/%s' % (city_link))
+		cuisine = self.request.get('rest_type')
+		if(city_link == "none"):
+			self.redirect('/browse')
+		else:
+			self.redirect('/browse/%s?cuisine=%s' % (city_link, cuisine))
 		
 class BrowseRestaurants(webapp2.RequestHandler):
 	def get(self, city):
@@ -394,6 +464,13 @@ class BrowseRestaurants(webapp2.RequestHandler):
 		result = Restaurant.query(ancestor = city_key).order(Restaurant.name)
 		check = False
 		self.response.write(HEADER_TEMPLATE)
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
 		for r in result:
 			check = True
 			self.response.write('<a href="/browse/%s/%s">%s</a></p></p>' % (city, r.key.id(), r.name))
@@ -402,7 +479,7 @@ class BrowseRestaurants(webapp2.RequestHandler):
 			self.response.write('No restaurants in this city.')
 		
 		self.response.write('</p><a href="/addnewrestaurant/%s"><input type="submit" value="ADD NEW RESTAURANT"></a>' % (city))
-		self.response.write('</p><a href="/browse"><< BACK</a>')
+		self.response.write('</p><a href="/browse"><< BACK</a></div>')
 		self.response.write(FOOTER_TEMPLATE)
 		
 class BrowseDishes(webapp2.RequestHandler):
@@ -411,6 +488,13 @@ class BrowseDishes(webapp2.RequestHandler):
 		result = Dish.query(ancestor = rest_key).order(Dish.name)
 		check = False
 		self.response.write(HEADER_TEMPLATE)
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
 		for d in result:
 			check = True
 			#Here we need to make it display stars instead of the number
@@ -418,7 +502,7 @@ class BrowseDishes(webapp2.RequestHandler):
 		if check == False:
 			self.response.write('No dishes in this restaurant.')
 		self.response.write('</p><a href="/addnewdish/%s/%s"><input type="submit" value="ADD NEW DISH"></a>' % (city, rest))
-		self.response.write('</p><a href="/browse/%s"><< BACK</a>' % (city))
+		self.response.write('</p><a href="/browse/%s"><< BACK</a></div>' % (city))
 		self.response.write(FOOTER_TEMPLATE)
 		
 class DisplayDish(webapp2.RequestHandler):
@@ -427,7 +511,13 @@ class DisplayDish(webapp2.RequestHandler):
 		result = Photo.query(ancestor = photo_key).order(-Photo.created).fetch(10)
 		check = False
 		self.response.write(HEADER_TEMPLATE)
-		
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
 		d = Dish.get_by_id(photo_key.id(), photo_key.parent())
 		self.response.write('<div style="display: inline-block; ">')
 		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%s</p></div>' % (d.name, d.price))
@@ -465,7 +555,7 @@ class DisplayDish(webapp2.RequestHandler):
 			self.response.write('No photos of this dish.')
 			
 		self.response.write('</p><a href="/uploadPhotoPage/%s/%s/%s"><input type="submit" value="Upload"></a>' % (city, rest, dish))
-		self.response.write('</p><a href="/browse/%s/%s"><< BACK</a><br><br><br>' % (city, rest))
+		self.response.write('</p><a href="/browse/%s/%s"><< BACK</a><br><br><br></div>' % (city, rest))
 		self.response.write(FOOTER_TEMPLATE)
 		
 
@@ -475,7 +565,15 @@ class DisplayDish(webapp2.RequestHandler):
 class AddNewRestaurant(webapp2.RequestHandler):
 	def get(self, city):
 		self.response.write(HEADER_TEMPLATE)
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
 		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city))
+		self.response.write('</div>')
 		self.response.write(HEADER_TEMPLATE)
 		
 class PostRestaurant2(webapp2.RequestHandler):
@@ -500,7 +598,18 @@ class PostRestaurant2(webapp2.RequestHandler):
 		
 class AddNewDish(webapp2.RequestHandler):
 	def get(self, city, rest):
+		self.response.write(HEADER_TEMPLATE)
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
 		self.response.out.write(ADD_NEW_DISH_TEMPLATE % (city, rest))
+		self.response.write('</div>')
+		self.response.write(HEADER_TEMPLATE)
+
 
 class PostDish2(webapp2.RequestHandler):
 	def post(self, city, rest):
@@ -530,6 +639,13 @@ class uploadPhotoPage(webapp2.RequestHandler):
     def get(self, city, rest, dish):
 		upload_url = blobstore.create_upload_url('/upload/%s/%s/%s' % (city, rest, dish))
 		self.response.write(HEADER_TEMPLATE)
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
 		self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
 		self.response.out.write("""Upload File: 
                 <input type="file" name="file" required><br> 
@@ -551,6 +667,8 @@ class uploadPhotoPage(webapp2.RequestHandler):
             
                 <input type="submit"name="submit" value="Submit"> 
                 </form>""")
+		self.response.write('</p><a href="/browse/%s/%s/%s"><< BACK</a>' % (city, rest, dish))
+		self.response.write('</div>')
 		self.response.write(FOOTER_TEMPLATE)
 
 
