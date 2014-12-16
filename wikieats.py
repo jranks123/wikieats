@@ -133,7 +133,50 @@ EDIT_RESTAURANT_TEMPLATE = """\
 	</form>
 """
 
+#####################################
+############### ADMIN ###############
+#####################################
+class admin(webapp2.RequestHandler):
+	def get(self):
+		self.response.write(HEADER_TEMPLATE)
+		self.response.write('<form action="/addAllCities" method="post">')
+		self.response.write('<input type = "submit" value = "Add All Cities From File"></form>')
+		self.response.write('<form action="/clearDatabase" method="post">')
+		self.response.write('<input type = "submit" value = "Clear Database"></form>')
+		self.response.write(FOOTER_TEMPLATE)
 
+class addAllCities(webapp2.RequestHandler):
+	def post(self):
+		lines = [line.strip() for line in open('cities.text')]
+		for line in lines:
+			r = City()
+			r.city = line
+			r.put()
+		self.redirect('/')
+
+class clearDatabase(webapp2.RequestHandler):
+	def post(self):
+		ndb.delete_multi(
+			City.query().fetch(keys_only=True)
+			)
+		ndb.delete_multi(
+			Restaurant.query().fetch(keys_only=True)
+			)
+		ndb.delete_multi(
+			Dish.query().fetch(keys_only=True)
+			)
+		ndb.delete_multi(
+			Photo.query().fetch(keys_only=True)
+			)
+		self.redirect('/')
+
+
+
+
+
+#ndb.delete_multi(
+  #  Game.query().fetch(keys_only=True)
+#)
 
 #####################################
 ########## DATABASE MODELS ##########
@@ -547,6 +590,12 @@ application = webapp2.WSGIApplication([
 #    ('/unp', UploadNewPhoto),
 #    ('/postnewphoto', PostNewPhoto),
 	
+
+	###### ADMIN#####
+	('/admin', admin),
+	('/addAllCities', addAllCities),
+	('/clearDatabase', clearDatabase),
+
 	##### BROWSING #####
     ('/browse', BrowseCities),
     ('/selectcity', SelectCity),
