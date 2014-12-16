@@ -5,6 +5,12 @@ api_version: 1
 threadsafe: true
 
 handlers:
+- url: /images
+  static_dir: images
+- url: /styles
+  static_dir: styles
+- url: /scripts
+  static_dir: scripts
 - url: /.*
   script: wikieats.application
 
