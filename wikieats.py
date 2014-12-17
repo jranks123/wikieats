@@ -2,8 +2,9 @@
 
 #. change it so we don't have duplicate functions
 #. stop double submit when you upload a photo
-#. Add cuisine filters 
+#. Add sort filter to restaurant and dish pages
 #. parse any entered text to protect against XSS
+
 
 import cgi
 import urllib
@@ -240,9 +241,6 @@ class getPostcodeDistance(webapp2.RequestHandler):
 		self.response.write(FOOTER_TEMPLATE)
 
 
-#ndb.delete_multi(
-  #  Game.query().fetch(keys_only=True)
-#)
 
 #####################################
 ########## DATABASE MODELS ##########
@@ -448,6 +446,7 @@ class BrowseRestaurants(webapp2.RequestHandler):
 			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
 		self.response.write(NAV_2)
 		self.response.write('<div style="position:relative; top:135px">')
+		self.response.write('<a style="font-weight:bold;"> Showing ' + cuisine + " restaurants in " + city_key.get().city + ':</a><br><br>')
 		for r in result:
 			if(r.cuisine == cuisine or cuisine == 'all'):
 				check = True
@@ -549,7 +548,6 @@ class AddNewRestaurant(webapp2.RequestHandler):
 		self.response.write(NAV_1)
 		cities = City.query().order(City.city)
 		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
 			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
 		self.response.write(NAV_2)
 		self.response.write('<div style="position:relative; top:135px">')
