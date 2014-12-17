@@ -108,7 +108,7 @@ ADD_RESTAURANT_TEMPLATE = """\
 """
 
 ADD_NEW_RESTAURANT_TEMPLATE = """\
-	<form action="/postrestaurant2/%s" method="post">
+	<form action="/postrestaurant2/%s?cuisine=%s" method="post">
 		Name:<div><input name="rest_name"></div>
 		Cuisine:
 		<div>
@@ -140,7 +140,7 @@ ADD_DISH_TEMPLATE = """\
 """
 
 ADD_NEW_DISH_TEMPLATE = """\
-	<form action="/postdish2/%s/%s" method="post">
+	<form action="/postdish2/%s/%s?cuisine=%s" method="post">
 		Name Of Dish:<div><input name="dish_name"></div>
 		Price (&pound):<div><input name="dish_price"></div>
 		</p>
@@ -480,7 +480,7 @@ class BrowseDishes(webapp2.RequestHandler):
 			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%s) - %.2f/5</a></p></p>' % (city, rest, d.key.id(), cuisine, d.name, d.price, d.averageRating))
 		if check == False:
 			self.response.write('No dishes in this restaurant.')
-		self.response.write('</p><a href="/addnewdish/%s/%s"><input type="submit" value="ADD NEW DISH"></a>' % (city, rest))
+		self.response.write('</p><a href="/addnewdish/%s/%s?cuisine=%s"><input type="submit" value="ADD NEW DISH"></a>' % (city, rest, cuisine))
 		self.response.write('</p><a href="/browse/%s?cuisine=%s"><< BACK</a></div>' % (city, cuisine))
 		self.response.write(FOOTER_TEMPLATE)
 		
@@ -544,6 +544,7 @@ class DisplayDish(webapp2.RequestHandler):
 #########################################
 class AddNewRestaurant(webapp2.RequestHandler):
 	def get(self, city):
+		cuisine = self.request.get('cuisine')
 		self.response.write(HEADER_TEMPLATE)
 		self.response.write(NAV_1)
 		cities = City.query().order(City.city)
@@ -552,12 +553,13 @@ class AddNewRestaurant(webapp2.RequestHandler):
 			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
 		self.response.write(NAV_2)
 		self.response.write('<div style="position:relative; top:135px">')
-		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city))
+		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city, cuisine))
 		self.response.write('</div>')
 		self.response.write(HEADER_TEMPLATE)
 		
 class PostRestaurant2(webapp2.RequestHandler):
     def post(self, city):
+    	cuisine = self.request.get('cuisine')
         rkey = ndb.Key('City', int(city))
         #this makes sure that adversary cannot insert restaurant into non-existing City in the database
         if rkey.get() == None:
@@ -574,10 +576,11 @@ class PostRestaurant2(webapp2.RequestHandler):
                 result = Restaurant.query(ancestor = ndb.Key('City', int(city))).filter(Restaurant.name == r.name)
                 for r in result:
                     check2 = True
-                    self.redirect('/browse/%s' % (city))
+                    self.redirect('/browse/%s?cuisine=%s' % (city, cuisine))
 		
 class AddNewDish(webapp2.RequestHandler):
 	def get(self, city, rest):
+		cuisine = self.request.get('cuisine')
 		self.response.write(HEADER_TEMPLATE)
 		self.response.write(NAV_1)
 		cities = City.query().order(City.city)
@@ -586,17 +589,18 @@ class AddNewDish(webapp2.RequestHandler):
 			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
 		self.response.write(NAV_2)
 		self.response.write('<div style="position:relative; top:135px">')
-		self.response.out.write(ADD_NEW_DISH_TEMPLATE % (city, rest))
+		self.response.out.write(ADD_NEW_DISH_TEMPLATE % (city, rest, cuisine))
 		self.response.write('</div>')
 		self.response.write(HEADER_TEMPLATE)
 
 
 class PostDish2(webapp2.RequestHandler):
 	def post(self, city, rest):
+		cuisine = self.request.get('cuisine')
 		rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
 		#this ensures that an adversay cannot inject dishes to restaurants that do not exist in the database
 		if rkey.get() == None:
-			self.redirect('/browse/%s/%s' % (city, rest))
+			self.redirect('/browse/%s/%s?cuisine=%s' % (city, rest, cuisine))
 		else:
 			r = Dish(parent=rkey)
 			r.name = self.request.get('dish_name')
@@ -609,7 +613,7 @@ class PostDish2(webapp2.RequestHandler):
 				result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
 				for r in result:
 					check = True
-					self.redirect('/browse/%s/%s' % (city, rest))
+					self.redirect('/browse/%s/%s?cuisine=%s' % (city, rest,cuisine))
 
 					
 ##################################
@@ -618,7 +622,7 @@ class PostDish2(webapp2.RequestHandler):
 class uploadPhotoPage(webapp2.RequestHandler):
     def get(self, city, rest, dish):
 		cuisine = self.request.get('cuisine')
-		upload_url = blobstore.create_upload_url('/upload/%s/%s/%s' % (city, rest, dish))
+		upload_url = blobstore.create_upload_url('/upload/%s/%s/%s?cuisine=%s' % (city, rest, dish, cuisine))
 		self.response.write(HEADER_TEMPLATE)
 		self.response.write(NAV_1)
 		cities = City.query().order(City.city)
@@ -658,6 +662,7 @@ class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self, city, rest, dish):
 		try:
 		# 'file' is file upload field in the form
+			cuisine = self.request.get('cuisine')
 			upload_files = self.get_uploads()
 			blob_info = upload_files[0]
 			rkey = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
@@ -681,10 +686,10 @@ class UploadHandler(blobstore_handlers.BlobstoreUploadHandler):
 			q.averageRating = avg_rating
 			q.numberOfPhotos = numberOfPhotos
 			q.put()
-			self.redirect('/browse/%s/%s/%s' % (city, rest, dish))
+			self.redirect('/browse/%s/%s/%s?cuisine=%s' % (city, rest, dish, cuisine))
 		except:
 			#this is when there is no rating. Need to implement some verification here
-			self.redirect('/uploadPhotoPage/%s/%s/%s' % (city, rest, dish))
+			self.redirect('/uploadPhotoPage/%s/%s/%s?cuisine=%s' % (city, rest, dish, cuisine))
 			
 
 class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
