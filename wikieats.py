@@ -126,7 +126,7 @@ ADD_NEW_RESTAURANT_TEMPLATE = """\
 			</select>
 		</div>
 		Postcode:<div><input name="rest_postcode"></div>
-		Phone Number:<div><input name="rest_phone"></div>
+		Phone Number:<div><input name="rest_phone"></div><br>
 		<div><input type="submit" value="ADD RESTAURANT"></div>
 	</form>
 """
@@ -405,22 +405,29 @@ class PostRestaurant(webapp2.RequestHandler):
                     check2 = True
                     self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
 		
+
+
+def writeNav(self):
+		self.response.write(HEADER_TEMPLATE)
+		self.response.write(NAV_1)
+		cities = City.query().order(City.city)
+		for c in cities:
+			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
+			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+		self.response.write(NAV_2)
+		self.response.write('<div style="position:relative; top:135px">')
+
 		
 ##############################
 ########## BROWSING ##########
 ##############################		
 class BrowseCities(webapp2.RequestHandler):
 	def get(self):
-		self.response.write(HEADER_TEMPLATE)
-		cities = City.query().order(City.city)
-		self.response.write(NAV_1)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
+		writeNav(self)
 		self.response.write('<div style="position:relative;"><a href="/"><< BACK</a><div>')
 		self.response.write(FOOTER_TEMPLATE)
-		
+
+
 class SelectCity(webapp2.RequestHandler):
     def post(self):
 		city_link = self.request.get('city_link')
@@ -438,14 +445,7 @@ class BrowseRestaurants(webapp2.RequestHandler):
 		city_key = ndb.Key('City', int(city))
 		result = Restaurant.query(ancestor = city_key).order(Restaurant.name)
 		check = False
-		self.response.write(HEADER_TEMPLATE)
-		self.response.write(NAV_1)
-		cities = City.query().order(City.city)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		self.response.write('<div style="position:relative; top:135px">')
+		writeNav(self)
 		self.response.write('<a style="font-weight:bold;"> Showing ' + cuisine + " restaurants in " + city_key.get().city + ':</a><br><br>')
 		for r in result:
 			if(r.cuisine == cuisine or cuisine == 'all'):
@@ -465,14 +465,7 @@ class BrowseDishes(webapp2.RequestHandler):
 		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
 		result = Dish.query(ancestor = rest_key).order(Dish.name)
 		check = False
-		self.response.write(HEADER_TEMPLATE)
-		self.response.write(NAV_1)
-		cities = City.query().order(City.city)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		self.response.write('<div style="position:relative; top:135px">')
+		writeNav(self)
 		for d in result:
 			check = True
 			#Here we need to make it display stars instead of the number
@@ -489,14 +482,7 @@ class DisplayDish(webapp2.RequestHandler):
 		photo_key = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
 		result = Photo.query(ancestor = photo_key).order(-Photo.created).fetch(10)
 		check = False
-		self.response.write(HEADER_TEMPLATE)
-		self.response.write(NAV_1)
-		cities = City.query().order(City.city)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		self.response.write('<div style="position:relative; top:135px">')
+		writeNav(self)
 		d = Dish.get_by_id(photo_key.id(), photo_key.parent())
 		self.response.write('<div style="display: inline-block; ">')
 		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%s</p></div>' % (d.name, d.price))
@@ -538,22 +524,18 @@ class DisplayDish(webapp2.RequestHandler):
 		self.response.write(FOOTER_TEMPLATE)
 		
 
+
 #########################################
 ########## ADD WHILST BROWSING ##########
 #########################################
 class AddNewRestaurant(webapp2.RequestHandler):
 	def get(self, city):
 		cuisine = self.request.get('cuisine')
-		self.response.write(HEADER_TEMPLATE)
-		self.response.write(NAV_1)
-		cities = City.query().order(City.city)
-		for c in cities:
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		self.response.write('<div style="position:relative; top:135px">')
+		writeNav(self)
 		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city, cuisine))
+		self.response.write('</p><a href="/browse/%s?cuisine=%s"><< BACK</a>' % (city, cuisine))
 		self.response.write('</div>')
-		self.response.write(HEADER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE)
 		
 class PostRestaurant2(webapp2.RequestHandler):
     def post(self, city):
@@ -575,21 +557,17 @@ class PostRestaurant2(webapp2.RequestHandler):
                 for r in result:
                     check2 = True
                     self.redirect('/browse/%s?cuisine=%s' % (city, cuisine))
-		
+	
+
+
 class AddNewDish(webapp2.RequestHandler):
 	def get(self, city, rest):
 		cuisine = self.request.get('cuisine')
-		self.response.write(HEADER_TEMPLATE)
-		self.response.write(NAV_1)
-		cities = City.query().order(City.city)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		self.response.write('<div style="position:relative; top:135px">')
+		writeNav(self)
 		self.response.out.write(ADD_NEW_DISH_TEMPLATE % (city, rest, cuisine))
+		self.response.write('</p><a href="/browse/%s/%s?cuisine=%s"><< BACK</a>' % (city, rest, cuisine))
 		self.response.write('</div>')
-		self.response.write(HEADER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE)
 
 
 class PostDish2(webapp2.RequestHandler):
@@ -621,14 +599,7 @@ class uploadPhotoPage(webapp2.RequestHandler):
     def get(self, city, rest, dish):
 		cuisine = self.request.get('cuisine')
 		upload_url = blobstore.create_upload_url('/upload/%s/%s/%s?cuisine=%s' % (city, rest, dish, cuisine))
-		self.response.write(HEADER_TEMPLATE)
-		self.response.write(NAV_1)
-		cities = City.query().order(City.city)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		self.response.write('<div style="position:relative; top:135px">')
+		writeNav(self)
 		self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
 		self.response.out.write("""Upload File: 
                 <input type="file" name="file" required><br> 
