@@ -68,45 +68,6 @@ NAV_2 = """\
 	"""
 
 
-MAIN_PAGE_TEMPLATE = """\
-	<a href="addNew">Add new photo</a>
-	<p></p>
-	<a href="browse">Browse</a>
-"""
-
-
-SEARCH_RESTAURANT_TEMPLATE = """\
-	<form action="/submitSearchRestaurant/%s" method="post">
-		Restaurant Name:<br>
-		<input type="text" name="rest_name" value="">
-		<br>
-		<input type="submit" value="Submit">
-	</form>
-"""
-
-ADD_RESTAURANT_TEMPLATE = """\
-	<a>Sorry we could not find that Restaurant. Please fill in the form below to add it</a>
-	<form action="/postrestaurant/%s" method="post">
-		Name:<div><input name="rest_name" value="%s"></div>
-		Cuisine:
-		<div>
-			<select name="rest_type">
-				<option value="indian">Indian</option>
-				<option value="pizza">Pizza</option>
-				<option value="chinese">Chinese</option>
-				<option value="kebab">Kebab</option>
-				<option value="italian">Italian</option>
-				<option value="fishandchips">Fish & Chips</option>
-				<option value="america">American</option>
-				<option value="chicken">Chicken</option>
-				<option value="carribean">Carribean</option>
-			</select>
-		</div>
-		Postcode:<div><input name="rest_postcode"></div>
-		Phone Number:<div><input name="rest_phone"></div>
-		<div><input type="submit" value="ADD RESTAURANT"></div>
-	</form>
-"""
 
 ADD_NEW_RESTAURANT_TEMPLATE = """\
 	<form action="/postrestaurant2/%s?cuisine=%s" method="post">
@@ -131,14 +92,6 @@ ADD_NEW_RESTAURANT_TEMPLATE = """\
 	</form>
 """
 
-ADD_DISH_TEMPLATE = """\
-	<form action="/postdish/%s/%s" method="post">
-		Name Of Dish:<div><input name="dish_name"></div>
-		Price (&pound):<div><input name="dish_price"></div>
-		</p>
-		<div><input type="submit" value="Add Dish"></div>
-	</form>
-"""
 
 ADD_NEW_DISH_TEMPLATE = """\
 	<form action="/postdish2/%s/%s?cuisine=%s" method="post">
@@ -149,29 +102,6 @@ ADD_NEW_DISH_TEMPLATE = """\
 	</form>
 """
 
-EDIT_RESTAURANT_TEMPLATE = """\
-	<form action="/postrestaurant" method="post">
-		Name:<div><input value="%s" name="rest_name"></div>
-		Cuisine:
-		<div>
-			<select name="rest_type">
-				<option value="indian">Indian</option>
-				<option value="pizza">Pizza</option>
-				<option value="chinese">Chinese</option>
-				<option value="kebab">Kebab</option>
-				<option value="italian">Italian</option>
-				<option value="fishandchips">Fish & Chips</option>
-				<option value="america">American</option>
-				<option value="chicken">Chicken</option>
-				<option value="carribean">Carribean</option>
-			</select>
-		</div>
-		City:<div><input value="%s" name="rest_city"></div>
-		Postcode:<div><input value="%s" name="rest_postcode"></div>
-		Phone Number:<div><input value="%s" name="rest_phone"></div>
-		<div><input type="submit" value="ADD RESTAURANT"></div>
-	</form>
-"""
 
 ENTER_POSTCODE_TEMPLATE = """\
 	<form action="/getPostcodeDistance" method="post">
@@ -270,140 +200,9 @@ class Photo(ndb.Model):
 
 
 ######################################
-########## REQUEST HANDLERS ##########
+############# FUNCTIONS ##############
 ######################################
-class MainPage(webapp2.RequestHandler):
-	def get(self):
-		self.response.write(HEADER_TEMPLATE)
-		cities = City.query().order(City.city)
-		self.response.write(NAV_1)
-		for c in cities:
-			#self.response.write('<a href="/browse/%s">%s</a></p>' % (c.key.id(),c.city))
-			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write(NAV_2)
-		
-		self.response.write(MAIN_PAGE_TEMPLATE)
-		self.response.write(FOOTER_TEMPLATE)
 
-class AddRestaurant(webapp2.RequestHandler):
-	def get(self, resource, name):
-		self.response.write(ADD_RESTAURANT_TEMPLATE % (resource, name))
-
-class searchRestaurant(webapp2.RequestHandler):
-    def get(self):
-        self.response.write(SEARCH_RESTAURANT_TEMPLATE)
-
-class searchCity(webapp2.RequestHandler):
-	def get(self):
-		self.response.write(HEADER_TEMPLATE)
-		cities = City.query().order(City.city)
-		self.response.write('<form action="/selectcity2" method="post"><div><select name="city_link">')
-		for c in cities:
-			self.response.write('<option name = "city" value="%s">%s</option>' % (c.key.id(), c.city))
-		self.response.write('</select>')
-		self.response.write('<select name="rest_type"> <option value="indian">Indian</option>')
-		self.response.write('<option value="pizza">Pizza</option>')
-		self.response.write('<option value="chinese">Chinese</option>')
-		self.response.write('<option value="kebab">Kebab</option>')
-		self.response.write('<option value="italian">Italian</option>')
-		self.response.write('<option value="fishandchips">Fish & Chips</option>')
-		self.response.write('<option value="america">American</option>')
-		self.response.write('<option value="chicken">Chicken</option>')
-		self.response.write('<option value="carribean">Carribean</option>')
-		self.response.write('</select>')
-		self.response.write('<input type="submit" value="SUBMIT"></div></form>');
-		self.response.write('<a href="/"><< BACK</a>')
-		self.response.write(FOOTER_TEMPLATE)
-		
-class SelectCity2(webapp2.RequestHandler):
-    def post(self):
-		city_link = self.request.get('city_link')
-		self.redirect('/city/%s' % (city_link))
-
-class submitSearchRestaurant(webapp2.RequestHandler):
-    def post(self, resource):
-        name = self.request.get('rest_name')
-        check = False
-        #need to add in check for right city
-        result = Restaurant.query(ancestor = ndb.Key('City', int(resource))).filter(Restaurant.name == name)
-        try:
-            for r in result:
-                check = True
-                self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
-            if check == False:
-				self.response.write(HEADER_TEMPLATE)
-				self.response.write(ADD_RESTAURANT_TEMPLATE % (resource, name))
-				self.response.write(FOOTER_TEMPLATE)
-                
-        except:
-			self.response.write(HEADER_TEMPLATE)
-			self.response.write(ADD_RESTAURANT_TEMPLATE % (resource, name))
-			self.response.write(FOOTER_TEMPLATE)
-
-class cityHandler(webapp2.RequestHandler):
-    def get(self, resource):
-        self.response.write(SEARCH_RESTAURANT_TEMPLATE % resource)
-
-class viewDish(webapp2.RequestHandler):
-	def get(self, city, rest):
-		rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
-		self.response.write(HEADER_TEMPLATE)
-		self.response.out.write('<a>Please select from the dishes below<br>')
-		result = Dish.query(ancestor = rkey)
-		check = False
-		for r in result:
-			check = True
-			self.response.write('<a href=/uploadPhotoPage/%s/%s/%s>%s</a><br>' % (city, rest, r.key.id(), r.name))
-		if check == False:
-			self.redirect('/addDish/%s/%s' % (city, rest))
-		self.response.out.write('<button><a href="/addDish/%s/%s">Cant see what your looking for/ Click here to add a new dish</a></button>' % (city, rest))
-		self.response.write(FOOTER_TEMPLATE)
-		
-class addDish(webapp2.RequestHandler):
-    def get(self, city, rest):
-    	self.response.write(HEADER_TEMPLATE)
-        self.response.out.write(ADD_DISH_TEMPLATE % (city,rest))
-        self.response.write(FOOTER_TEMPLATE)
-
-class postdish(webapp2.RequestHandler):
-	def post(self, city, rest):
-		rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
-		#this ensures that an adversay cannot inject dishes to restaurants that do not exist in the database
-		if rkey.get() == None:
-			self.redirect('/')
-		else:
-			r = Dish(parent=rkey)
-			r.name = self.request.get('dish_name')
-			r.price = self.request.get('dish_price')
-			r.averageRating = 0.0
-			r.numberOfPhotos = 0.0
-			r.put()
-			check = False
-			while check == False:
-				result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
-				for r in result:
-					check = True
-					self.redirect('/uploadPhotoPage/%s/%s/%s' % (city, rest, r.key.id()))
-
-class PostRestaurant(webapp2.RequestHandler):
-    def post(self, resource):
-        rkey = ndb.Key('City', int(resource))
-        #this makes sure that adversary cannot insert restaurant into non-existing City in the database
-        if rkey.get() == None:
-            self.redirect('/')
-        else:
-            r = Restaurant(parent= rkey)
-            r.name = self.request.get('rest_name')
-            r.cuisine = self.request.get('rest_type')
-            r.postcode = self.request.get('rest_postcode')
-            r.phone = self.request.get('rest_phone')
-            r.put()
-            check2 = False
-            while check2 == False:
-                result = Restaurant.query(ancestor = ndb.Key('City', int(resource))).filter(Restaurant.name == r.name)
-                for r in result:
-                    check2 = True
-                    self.redirect('/viewDish/%s/%s' % (resource, r.key.id()))
 		
 
 
@@ -424,7 +223,6 @@ def writeNav(self):
 class BrowseCities(webapp2.RequestHandler):
 	def get(self):
 		writeNav(self)
-		self.response.write('<div style="position:relative;"><a href="/"><< BACK</a><div>')
 		self.response.write(FOOTER_TEMPLATE)
 
 
@@ -668,55 +466,10 @@ class ServeHandler(blobstore_handlers.BlobstoreDownloadHandler):
         self.send_blob(blob_info)
 
 		
-##### IGNORE THIS FOR NOW #####
-#class UploadNewPhoto(webapp2.RequestHandler):
-#	def get(self):
-		
-		# photo upload form
-#		self.response.write(HEADER_TEMPLATE)
-#		self.response.write('<form action="/postnewphoto" method="post">')
-		
-		# select city dropdown menu
-#		cities = City.query().order(City.city)
-#		self.response.write('<div>City:<select name="city_link">')
-#		for c in cities:
-#			self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
-#		self.response.write('</select></div></p>')
-		
-		# input restaurant name
-#		self.response.write('<div>Restaurant:<input type="text" name="rest_name"></div></p>')
-		
-		# input dish info
-#		self.response.write('<div>Name Of Dish:<input name="dish_name"></div></p>')
-#		self.response.write('<div>Price (&pound):<input name="dish_price"></div></p>')
-		
-		# input photo info
-#		self.response.write('<div>Image:<input type="file" name="file"></div>')
-#		self.response.write('<div>Review:<textarea name="review" rows="3" cols="60"></textarea></div>')
-#		self.response.write('<div>Rating:<select name="rating">')
-#		self.response.write('<option value="1">1</option>')
-#		self.response.write('<option value="2">2</option>')
-#		self.response.write('<option value="3">3</option>')
-#		self.response.write('<option value="4">4</option>')
-#		self.response.write('<option value="5">5</option>')
-#		self.response.write('</select></div>')
-		
-#		self.response.write('<input type="submit" value="SUBMIT">')
-#		self.response.write('</form><a href="/"><< BACK</a>')
-#		self.response.write(FOOTER_TEMPLATE)
-	
-#class PostNewPhoto(webapp2.RequestHandler):
-#	def post(self):
-#		self.response.write('<html><body>hello</body></html>')
-#		self.redirect('/')
-
 
 application = webapp2.WSGIApplication([
-    ('/', MainPage),
-#    ('/unp', UploadNewPhoto),
-#    ('/postnewphoto', PostNewPhoto),
-	
 
+	('/', BrowseCities),
 	###### ADMIN#####
 	('/admin', admin),
 	('/addAllCities', addAllCities),
@@ -737,16 +490,9 @@ application = webapp2.WSGIApplication([
     ('/addnewdish/([^/]+)?/([^/]+)?', AddNewDish),
     ('/postdish2/([^/]+)?/([^/]+)?', PostDish2),
 	
-    ('/submitSearchRestaurant', submitSearchRestaurant),
 
 	##### ADD WHILST UPLOADING PHOTO #####
-	('/addNew', searchCity),
-	('/selectcity2', SelectCity2),
-	('/city/([^/]+)?', cityHandler),
-    ('/addrestaurant/([^/]+)?/([^/]+)?', AddRestaurant),
-	('/postrestaurant/([^/]+)?', PostRestaurant),
-	('/addDish/([^/]+)?/([^/]+)?', addDish),
-    ('/postdish/([^/]+)?/([^/]+)?', postdish),
+	
 
     ('/uploadPhotoPage/([^/]+)?/([^/]+)?/([^/]+)?', uploadPhotoPage),
 	
@@ -754,7 +500,4 @@ application = webapp2.WSGIApplication([
     ('/upload/([^/]+)?/([^/]+)?/([^/]+)?', UploadHandler),
     ('/serve/([^/]+)?', ServeHandler),
 	
-    ('/viewDish/([^/]+)?/([^/]+)?', viewDish),
-    
-    ('/submitSearchRestaurant/([^/]+)?', submitSearchRestaurant)
-], debug=True)
+    ], debug=True)
