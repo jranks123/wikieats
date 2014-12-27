@@ -17,7 +17,24 @@ indexes:
 - kind: Dish
   ancestor: yes
   properties:
+  - name: averageRating
+
+- kind: Dish
+  ancestor: yes
+  properties:
+  - name: averageRating
+    direction: desc
+
+- kind: Dish
+  ancestor: yes
+  properties:
   - name: name
+
+- kind: Dish
+  ancestor: yes
+  properties:
+  - name: name
+    direction: desc
 
 - kind: Photo
   ancestor: yes
@@ -34,3 +51,9 @@ indexes:
   ancestor: yes
   properties:
   - name: name
+
+- kind: Restaurant
+  ancestor: yes
+  properties:
+  - name: name
+    direction: desc

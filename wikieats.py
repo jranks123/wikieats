@@ -615,14 +615,33 @@ class SelectCity(webapp2.RequestHandler):
 class BrowseRestaurants(BaseHandler):
 	def get(self, city):
 		cuisine = self.request.get('cuisine')
+		sorted = self.request.get('order')
 		#parsed = urlparse.urlparse(url) 
 		#print urlparse.parse_qs(parsed.query)['param']
 		city_key = ndb.Key('City', int(city))
-		result = Restaurant.query(ancestor = city_key).order(Restaurant.name)
+		if sorted == "zyx":
+			result = Restaurant.query(ancestor = city_key).order(-Restaurant.name)
+		else:
+			result = Restaurant.query(ancestor = city_key).order(Restaurant.name)
 		check = False
 		active = "browse"
 		writeNav(self, active)
-		self.response.write('<p class="liststatus"> Showing ' + cuisine + " restaurants in " + city_key.get().city + ':<br><div class="listdisplay">')
+		self.response.write('<div class="liststatus">Showing ' + cuisine + " restaurants in " + city_key.get().city + ':')
+		self.response.write('<form action="/browse/%s" method="GET" class="sortorder"><select name="order" onchange="this.form.submit()">'% (city))
+		
+		self.response.write('<option value="abc"')
+		if sorted == "abc":
+			self.response.write('selected')
+		self.response.write('>Alphabetical (A-Z)</option>')
+		
+		
+		self.response.write('<option value="zyx"')
+		if sorted == "zyx":
+			self.response.write('selected')
+		self.response.write('>Alphabetical (Z-A)</option>')
+		
+		self.response.write('<input type="hidden" value="%s" name="cuisine"' % (cuisine))
+		self.response.write('</select></div><div class="listdisplay">')
 		for r in result:
 			if(r.cuisine == cuisine or cuisine == 'all'):
 				check = True
@@ -643,12 +662,52 @@ class BrowseRestaurants(BaseHandler):
 class BrowseDishes(BaseHandler):
 	def get(self, city, rest):
 		cuisine = self.request.get('cuisine')
+		sorted = self.request.get('order')
 		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
-		result = Dish.query(ancestor = rest_key).order(Dish.name)
+		
+		if sorted == "zyx":
+			ordering = -Dish.name
+		elif sorted == "high":
+			ordering = -Dish.averageRating
+		elif sorted == "low":
+			ordering = Dish.averageRating
+		else:
+			ordering = Dish.name
+		
+		result = Dish.query(ancestor = rest_key).order(ordering)
 		check = False
 		active = "browse"
 		writeNav(self, active)
-		self.response.write('<p class="liststatus"> Showing meals from the ' + rest_key.get().name + ' menu:<br><div class="listdisplay">')
+  
+		self.response.write('<div class="liststatus">Showing meals from the ' + rest_key.get().name + ' menu:')
+		self.response.write('<form action="/browse/%s/%s?cuisine=%s" method="GET" class="sortorder"><select name="order" onchange="this.form.submit()">'% (city, rest, cuisine))
+		
+		self.response.write('<option value="abc"')
+		if sorted == "abc":
+			self.response.write('selected')
+		self.response.write('>Alphabetical (A-Z)</option>')
+		
+		
+		self.response.write('<option value="zyx"')
+		if sorted == "zyx":
+			self.response.write('selected')
+		self.response.write('>Alphabetical (Z-A)</option>')
+		
+		
+		self.response.write('<option value="high"')
+		if sorted == "high":
+			self.response.write('selected')
+		self.response.write('>Rating (High-Low)</option>')
+		
+		
+		self.response.write('<option value="low"')
+		if sorted == "low":
+			self.response.write('selected')
+		self.response.write('>Rating (Low-High)</option>')
+		
+		
+		self.response.write('<input type="hidden" value="%s" name="cuisine"' % (cuisine))
+		self.response.write('</select></form></div><div class="listdisplay">')
 		for d in result:
 			check = True
 			#Here we need to make it display stars instead of the number
@@ -706,9 +765,15 @@ class DisplayDish(BaseHandler):
 		
 		self.response.write('<a class="backbutton" href="/browse/%s/%s?cuisine=%s">BACK</a></div>' % (city, rest, cuisine))
 		self.response.write(FOOTER_TEMPLATE)
-		
 
-
+#####################################
+########## LIST SORT ORDER ##########
+#####################################
+class AddNewRestaurant(BaseHandler):
+	def post(self):
+		order = self.request.get('order')
+	
+	
 #########################################
 ########## ADD WHILST BROWSING ##########
 #########################################
