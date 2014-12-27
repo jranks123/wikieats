@@ -365,9 +365,10 @@ HEADER_TEMPLATE = """
 		<link rel="stylesheet" type="text/css" href="/styles/star_rating.css">
 		<link rel="stylesheet" type="text/css" href="/styles/navbar.css">
 		<link rel="stylesheet" type="text/css" href="/styles/login.css">
+		<link rel="stylesheet" type="text/css" href="/styles/list.css">
 	</head>
 	<body>
-		<div style="position:fixed; left:0px; top:0px; height:110px; width:100%; background:#15967E; z-index:10;">
+		<div style="position:fixed; left:0px; top:0px; height:110px; width:100%; background:#15967E; z-index:100;">
 			<div style="padding:5px;">
 				<a href="/"><img src="/images/wikieats_logo.png" width="99px" height="99px"></a>
 			</div>	
@@ -376,7 +377,7 @@ HEADER_TEMPLATE = """
 
 FOOTER_TEMPLATE = """
 			</div>
-			<div style="position:fixed; left:0px; bottom:0px; height:30px; width:100%; background:#15967E;"></div>
+			<div style="position:fixed; left:0px; bottom:0px; height:30px; width:100%; background:#15967E; z-index:100; "></div>
 		</body>
 	</html>
 """
@@ -544,6 +545,28 @@ class Photo(ndb.Model):
 ############# FUNCTIONS ##############
 ######################################
 
+def starRating(self, rating):
+	if rating == 1:
+		self.response.write('<img src="/images/1_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 1.5:
+		self.response.write('<img src="/images/1-5_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 2:
+		self.response.write('<img src="/images/2_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 2.5:
+		self.response.write('<img src="/images/2-5_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 3:
+		self.response.write('<img src="/images/3_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 3.5:
+		self.response.write('<img src="/images/3-5_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 4:
+		self.response.write('<img src="/images/4_star.png" style="display:inline;" height="40px" width="200px">')
+	elif  rating == 4.5:
+		self.response.write('<img src="/images/4-5_star.png" style="display:inline;" height="40px" width="200px">')
+	else:
+		self.response.write('<img src="/images/5_star.png" style="display:inline;" height="40px" width="200px">')
+
+
+
 def writeNav(self, active):
 		self.response.write(HEADER_TEMPLATE)
 		self.response.write(NAV_1)
@@ -566,7 +589,7 @@ def writeNav(self, active):
 		
 		self.response.write('</ul></div>')
 		
-		self.response.write('<div style="position:relative; top:175px">')
+		self.response.write('<div style="position:relative; top:175px; margin-bottom:50px;">')
 
 		
 ##############################
@@ -599,20 +622,22 @@ class BrowseRestaurants(BaseHandler):
 		check = False
 		active = "browse"
 		writeNav(self, active)
-		self.response.write('<a style="font-weight:bold;"> Showing ' + cuisine + " restaurants in " + city_key.get().city + ':</a><br><br>')
+		self.response.write('<p class="liststatus"> Showing ' + cuisine + " restaurants in " + city_key.get().city + ':<br><div class="listdisplay">')
 		for r in result:
 			if(r.cuisine == cuisine or cuisine == 'all'):
 				check = True
-				self.response.write('<a href="/browse/%s/%s?cuisine=%s"">%s</a></p></p>' % (city, r.key.id(), cuisine, r.name))
+				self.response.write('<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, r.key.id(), cuisine, r.name))
 			
 		if check == False:
-			self.response.write('No restaurants in this city.')
+			self.response.write('<p class="noitems">No restaurants in this city.</p>')
+		
+		self.response.write('</div>')
 		
 		u = self.auth.get_user_by_session()
 		if u:
-			self.response.write('</p><a href="/addnewrestaurant/%s?cuisine=%s"><input type="submit" value="ADD NEW RESTAURANT"></a>' % (city, cuisine))
+			self.response.write('<a href="/addnewrestaurant/%s?cuisine=%s"><input class="addtolist" type="submit" value="ADD NEW RESTAURANT"></a></p>' % (city, cuisine))
 			
-		self.response.write('</p><a href="/browse"><< BACK</a></div>')
+		self.response.write('<a class="backbutton "href="/browse">BACK</a></div>')
 		self.response.write(FOOTER_TEMPLATE)
 		
 class BrowseDishes(BaseHandler):
@@ -623,18 +648,26 @@ class BrowseDishes(BaseHandler):
 		check = False
 		active = "browse"
 		writeNav(self, active)
+		self.response.write('<p class="liststatus"> Showing meals from the ' + rest_key.get().name + ' menu:<br><div class="listdisplay">')
 		for d in result:
 			check = True
 			#Here we need to make it display stars instead of the number
-			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%s) - %.2f/5</a></p></p>' % (city, rest, d.key.id(), cuisine, d.name, d.price, d.averageRating))
+			d = Dish.get_by_id(d.key.id(), d.key.parent())
+			avg_rating = d.averageRating
+			rounded = round(avg_rating* 2) / 2
+			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%s) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, rest, d.key.id(), cuisine, d.name, d.price))
+			starRating(self, rounded)
+			self.response.write('</div></div></a>')
 		if check == False:
-			self.response.write('No dishes in this restaurant.')
+			self.response.write('<p class="noitems">No dishes in this restaurant.</p>')
+		
+		self.response.write('</div>')
 		
 		u = self.auth.get_user_by_session()
 		if u:
-			self.response.write('</p><a href="/addnewdish/%s/%s?cuisine=%s"><input type="submit" value="ADD NEW DISH"></a>' % (city, rest, cuisine))
+			self.response.write('<a  href="/addnewdish/%s/%s?cuisine=%s"><input class="addtolist" type="submit" value="ADD NEW DISH"></a></p>' % (city, rest, cuisine))
 		
-		self.response.write('</p><a href="/browse/%s?cuisine=%s"><< BACK</a></div>' % (city, cuisine))
+		self.response.write('<a class="backbutton" href="/browse/%s?cuisine=%s">BACK</a></div>' % (city, cuisine))
 		self.response.write(FOOTER_TEMPLATE)
 		
 class DisplayDish(BaseHandler):
@@ -652,24 +685,7 @@ class DisplayDish(BaseHandler):
 		avg_rating = d.averageRating
 		rounded = round(avg_rating* 2) / 2
 		self.response.write('<div style="float:left; display: inline-block; width: 430px; margin: auto; top: 0; bottom: 0; vertical-align: middle; padding:40px 0px; font-size:13px; font-family:Arial;">')
-		if rounded == 1:
-			self.response.write('<img src="/images/1_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 1.5:
-			self.response.write('<img src="/images/1-5_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 2:
-			self.response.write('<img src="/images/2_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 2.5:
-			self.response.write('<img src="/images/2-5_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 3:
-			self.response.write('<img src="/images/3_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 3.5:
-			self.response.write('<img src="/images/3-5_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 4:
-			self.response.write('<img src="/images/4_star.png" style="display:inline;" height="40px" width="200px">')
-		elif  rounded == 4.5:
-			self.response.write('<img src="/images/4-5_star.png" style="display:inline;" height="40px" width="200px">')
-		else:
-			self.response.write('<img src="/images/5_star.png" style="display:inline;" height="40px" width="200px">')
+		starRating(self, rounded)
 
 		self.response.write('(Rating of %.2f based on %d ratings)</div></div>' % (avg_rating,d.numberOfPhotos))
 		
@@ -681,14 +697,14 @@ class DisplayDish(BaseHandler):
 		self.response.write('</ul>')
 		
 		if check == False:
-			self.response.write('No photos of this dish.')
+			self.response.write('<p class="noitems">No photos of this dish.</p>')
 		
 		
 		u = self.auth.get_user_by_session()
 		if u:
-			self.response.write('</p><a href="/uploadPhotoPage/%s/%s/%s?cuisine=%s"><input type="submit" value="Upload"></a>' % (city, rest, dish, cuisine))
+			self.response.write('<a href="/uploadPhotoPage/%s/%s/%s?cuisine=%s"><input class="addtolist" type="submit" value="Upload"></a></p>' % (city, rest, dish, cuisine))
 		
-		self.response.write('</p><a href="/browse/%s/%s?cuisine=%s"><< BACK</a><br><br><br></div>' % (city, rest, cuisine))
+		self.response.write('<a class="backbutton" href="/browse/%s/%s?cuisine=%s">BACK</a></div>' % (city, rest, cuisine))
 		self.response.write(FOOTER_TEMPLATE)
 		
 

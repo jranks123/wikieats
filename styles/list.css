@@ -1,0 +1,90 @@
+.listdisplay {
+	margin: 10px 0px;
+	width: 50%;
+}
+
+.listdisplay a {
+	display: block;
+	font-family: Arial;
+	font-size: 30px;
+	padding: 20px;
+	margin: 10px auto;
+	background: rgb(232, 232, 232);
+	text-decoration:none;
+	color: #000;
+	line-height:40px;
+}
+
+.listdisplay a:hover{
+	background: rgb(213, 213, 213);
+}
+
+.listdisplay a:active{
+	background: rgb(200, 200, 200);
+}
+
+.liststatus{
+	font-family: Arial;
+	font-size: 30px;
+	font-weight:bold;
+	margin:0px;
+}
+
+.addtolist{
+	background: #1abc9d;
+	width: 314px;
+	padding: 12px;
+	cursor: pointer;
+	color: #fff;
+	border: 0px;
+	margin: auto;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	font-size: 17px;
+	transition: all 0.3s ease;
+	text-decoration:none;
+}
+
+.addtolist:hover{
+	background: #09cca6
+}
+
+.backbutton {
+	position: relative;
+	background: #1abc9d;
+	display: inline-block;
+	padding: 6px 8px 6px 4px;
+	color: whitesmoke;
+	text-decoration: none;
+	font: 17px "proxima nova", helvetica, arial, sans-serif;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	border-radius: 3px;
+	z-index: 1;
+	margin-left:20px;
+}
+.backbutton:before {
+	content: "";
+	height: 25px;
+	width: 25px;
+	position: absolute;
+	background: #1abc9d;
+	left: -10px;
+	display: block;
+	top: 3.5px;
+	-moz-transform: rotate(45deg);
+	-ms-transform: rotate(45deg);
+	-webkit-transform: rotate(45deg);
+	transform: rotate(45deg);
+	z-index: -1;
+	-moz-border-radius: 4px;
+	-webkit-border-radius: 4px;
+	border-radius: 4px;
+}
+
+.noitems{
+	font-family: Arial;
+	font-size: 30px;
+	color:rgb(190, 190, 190)
+}
