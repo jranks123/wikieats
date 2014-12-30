@@ -17,6 +17,7 @@ import time
 import webapp2_extras.appengine.auth.models
 
 from google.appengine.ext import ndb
+from google.appengine.api import mail
 from google.appengine.api import images
 from google.appengine.ext import blobstore
 from google.appengine.ext.webapp import blobstore_handlers
@@ -33,6 +34,25 @@ from webapp2_extras.auth import InvalidPasswordError
 ####### USER AUTHENTICATION #######
 ###################################
 
+PASSWORD_RESET_EMAIL = """
+%s,
+Your password can be reset by clicking the following link:
+
+%s
+
+Thanks,
+The WikiEats Team
+"""
+
+ACCOUNT_CONFIRM = """
+%s,
+Please confirm your account by clicking the following link:
+
+%s
+
+Thanks,
+The WikiEats Team
+"""
 
 SIGNUP_TEMPLATE = """
 	<div class="input_form">
@@ -43,7 +63,7 @@ SIGNUP_TEMPLATE = """
 			<input type="password" name="password" placeholder="Password" required/>
 			<input type="submit" value="Register" />
 		</form>
-	<div>
+	</div>
 """
 
 LOGIN_TEMPLATE = """
@@ -60,15 +80,15 @@ LOGIN_TEMPLATE = """
 """
 
 RESET_PASSWORD_TEMPLATE = """
-	<h1>Reset password</h1>
-	<form action="/password" method="post">
-		<label>New Password:</label>
-		<input type="password" name="password" /></p>
-		<label>Confirm Password:</label>
-		<input type="password" name="confirm_password" />
-		<input type="hidden" name="t" value="%s" />
-		<input type="submit" value="Update password" />
-	</form>
+	<div class="input_form">
+		<h1>Reset password</h1>
+		<form action="/password" method="post">
+			<input type="password" name="password" placeholder="New Password"/>
+			<input type="password" name="confirm_password" placeholder="Confirm Password"/>
+			<input type="hidden" name="t" value="%s" />
+			<input type="submit" value="Update Password" />
+		</form>
+	</div>
 """
 
 FORGOT_TEMPLATE = """
@@ -208,6 +228,8 @@ class SignupHandler(BaseHandler):
 
     verification_url = self.uri_for('verification', type='v', user_id=user_id,
       signup_token=token, _full=True)
+	  
+    mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Account Confirmation",body = ACCOUNT_CONFIRM % (user.name,verification_url))
 
     msg = 'Send an email to user in order to verify their address. \
           They will be able to do so by visiting <a href="{url}">{url}</a>'
@@ -233,6 +255,8 @@ class ForgotPasswordHandler(BaseHandler):
     verification_url = self.uri_for('verification', type='p', user_id=user_id,
       signup_token=token, _full=True)
 
+    mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Password Reset",body = PASSWORD_RESET_EMAIL % (user.name,verification_url))
+	
     msg = 'Send an email to user in order to reset their password. \
           They will be able to do so by visiting <a href="{url}">{url}</a>'
 
@@ -351,7 +375,7 @@ class AuthenticatedHandler(BaseHandler):
 config = {
   'webapp2_extras.auth': {
     'user_model': 'wikieats.User',
-    'user_attributes': ['name']
+    'user_attributes': ['name','email_address']
   },
   'webapp2_extras.sessions': {
     'secret_key': 'YOUR_SECRET_KEY'
@@ -562,7 +586,7 @@ def starRating(self, rating):
 		self.response.write('<img src="/images/4_star.png" style="display:inline;" height="40px" width="200px">')
 	elif  rating == 4.5:
 		self.response.write('<img src="/images/4-5_star.png" style="display:inline;" height="40px" width="200px">')
-	else:
+	elif  rating == 5:
 		self.response.write('<img src="/images/5_star.png" style="display:inline;" height="40px" width="200px">')
 
 
@@ -667,10 +691,14 @@ class BrowseDishes(BaseHandler):
 		
 		if sorted == "zyx":
 			ordering = -Dish.name
-		elif sorted == "high":
+		elif sorted == "top":
 			ordering = -Dish.averageRating
-		elif sorted == "low":
+		elif sorted == "bottom":
 			ordering = Dish.averageRating
+		elif sorted == "high":
+			ordering = -Dish.price
+		elif sorted == "low":
+			ordering = Dish.price
 		else:
 			ordering = Dish.name
 		
@@ -694,17 +722,28 @@ class BrowseDishes(BaseHandler):
 		self.response.write('>Alphabetical (Z-A)</option>')
 		
 		
+		self.response.write('<option value="top"')
+		if sorted == "top":
+			self.response.write('selected')
+		self.response.write('>Rating (High-Low)</option>')
+		
+		
+		self.response.write('<option value="bottom"')
+		if sorted == "bottom":
+			self.response.write('selected')
+		self.response.write('>Rating (Low-High)</option>')
+		
+		
 		self.response.write('<option value="high"')
 		if sorted == "high":
 			self.response.write('selected')
-		self.response.write('>Rating (High-Low)</option>')
+		self.response.write('>Price (High-Low)</option>')
 		
 		
 		self.response.write('<option value="low"')
 		if sorted == "low":
 			self.response.write('selected')
-		self.response.write('>Rating (Low-High)</option>')
-		
+		self.response.write('>Price (Low-High)</option>')
 		
 		self.response.write('<input type="hidden" value="%s" name="cuisine"' % (cuisine))
 		self.response.write('</select></form></div><div class="listdisplay">')
@@ -712,10 +751,13 @@ class BrowseDishes(BaseHandler):
 			check = True
 			#Here we need to make it display stars instead of the number
 			d = Dish.get_by_id(d.key.id(), d.key.parent())
-			avg_rating = d.averageRating
-			rounded = round(avg_rating* 2) / 2
 			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%s) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, rest, d.key.id(), cuisine, d.name, d.price))
-			starRating(self, rounded)
+			
+			avg_rating = d.averageRating
+			if avg_rating:
+				rounded = round(avg_rating* 2) / 2
+				starRating(self, rounded)
+				
 			self.response.write('</div></div></a>')
 		if check == False:
 			self.response.write('<p class="noitems">No dishes in this restaurant.</p>')
@@ -742,11 +784,11 @@ class DisplayDish(BaseHandler):
 		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%s</p></div>' % (d.name, d.price))
 
 		avg_rating = d.averageRating
-		rounded = round(avg_rating* 2) / 2
-		self.response.write('<div style="float:left; display: inline-block; width: 430px; margin: auto; top: 0; bottom: 0; vertical-align: middle; padding:40px 0px; font-size:13px; font-family:Arial;">')
-		starRating(self, rounded)
-
-		self.response.write('(Rating of %.2f based on %d ratings)</div></div>' % (avg_rating,d.numberOfPhotos))
+		if avg_rating:
+			rounded = round(avg_rating* 2) / 2
+			self.response.write('<div style="float:left; display: inline-block; width: 430px; margin: auto; top: 0; bottom: 0; vertical-align: middle; padding:40px 0px; font-size:13px; font-family:Arial;">')
+			starRating(self, rounded)
+			self.response.write('(Rating of %.2f based on %d ratings)</div></div>' % (avg_rating,d.numberOfPhotos))
 		
 		self.response.write('<ul class="rig">')
 		for p in result:

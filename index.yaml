@@ -36,6 +36,17 @@ indexes:
   - name: name
     direction: desc
 
+- kind: Dish
+  ancestor: yes
+  properties:
+  - name: price
+
+- kind: Dish
+  ancestor: yes
+  properties:
+  - name: price
+    direction: desc
+
 - kind: Photo
   ancestor: yes
   properties:
