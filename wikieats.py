@@ -229,7 +229,7 @@ class SignupHandler(BaseHandler):
     verification_url = self.uri_for('verification', type='v', user_id=user_id,
       signup_token=token, _full=True)
 	  
-    mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Account Confirmation",body = ACCOUNT_CONFIRM % (user.name,verification_url))
+    #mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Account Confirmation",body = ACCOUNT_CONFIRM % (user.name,verification_url))
 
     msg = 'Send an email to user in order to verify their address. \
           They will be able to do so by visiting <a href="{url}">{url}</a>'
@@ -255,7 +255,7 @@ class ForgotPasswordHandler(BaseHandler):
     verification_url = self.uri_for('verification', type='p', user_id=user_id,
       signup_token=token, _full=True)
 
-    mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Password Reset",body = PASSWORD_RESET_EMAIL % (user.name,verification_url))
+    #mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Password Reset",body = PASSWORD_RESET_EMAIL % (user.name,verification_url))
 	
     msg = 'Send an email to user in order to reset their password. \
           They will be able to do so by visiting <a href="{url}">{url}</a>'
@@ -678,7 +678,7 @@ class BrowseRestaurants(BaseHandler):
 		
 		u = self.auth.get_user_by_session()
 		if u:
-			self.response.write('<a href="/addnewrestaurant/%s?cuisine=%s"><input class="addtolist" type="submit" value="ADD NEW RESTAURANT"></a></p>' % (city, cuisine))
+			self.response.write('<a href="/addnewrestaurant/%s?cuisine=%s"><input class="addtolist" value="ADD NEW RESTAURANT"></a></p>' % (city, cuisine))
 			
 		self.response.write('<a class="backbutton "href="/browse">BACK</a></div>')
 		self.response.write(FOOTER_TEMPLATE)
@@ -766,7 +766,7 @@ class BrowseDishes(BaseHandler):
 		
 		u = self.auth.get_user_by_session()
 		if u:
-			self.response.write('<a  href="/addnewdish/%s/%s?cuisine=%s"><input class="addtolist" type="submit" value="ADD NEW DISH"></a></p>' % (city, rest, cuisine))
+			self.response.write('<a  href="/addnewdish/%s/%s?cuisine=%s"><input class="addtolist" value="ADD NEW DISH"></a></p>' % (city, rest, cuisine))
 		
 		self.response.write('<a class="backbutton" href="/browse/%s?cuisine=%s">BACK</a></div>' % (city, cuisine))
 		self.response.write(FOOTER_TEMPLATE)
@@ -803,17 +803,10 @@ class DisplayDish(BaseHandler):
 		
 		u = self.auth.get_user_by_session()
 		if u:
-			self.response.write('<a href="/uploadPhotoPage/%s/%s/%s?cuisine=%s"><input class="addtolist" type="submit" value="Upload"></a></p>' % (city, rest, dish, cuisine))
+			self.response.write('<a href="/uploadPhotoPage/%s/%s/%s?cuisine=%s"><input class="addtolist" value="Upload"></a></p>' % (city, rest, dish, cuisine))
 		
 		self.response.write('<a class="backbutton" href="/browse/%s/%s?cuisine=%s">BACK</a></div>' % (city, rest, cuisine))
 		self.response.write(FOOTER_TEMPLATE)
-
-#####################################
-########## LIST SORT ORDER ##########
-#####################################
-class AddNewRestaurant(BaseHandler):
-	def post(self):
-		order = self.request.get('order')
 	
 	
 #########################################
@@ -825,7 +818,7 @@ class AddNewRestaurant(BaseHandler):
 		active = "restaurant"
 		writeNav(self, active)
 		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city, cuisine))
-		self.response.write('</p><a href="/browse/%s?cuisine=%s"><< BACK</a>' % (city, cuisine))
+		self.response.write('</p><a href="/browse/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, cuisine))
 		self.response.write('</div>')
 		self.response.write(FOOTER_TEMPLATE)
 		
@@ -858,7 +851,7 @@ class AddNewDish(BaseHandler):
 		active = "dish"
 		writeNav(self, active)
 		self.response.out.write(ADD_NEW_DISH_TEMPLATE % (city, rest, cuisine))
-		self.response.write('</p><a href="/browse/%s/%s?cuisine=%s"><< BACK</a>' % (city, rest, cuisine))
+		self.response.write('</p><a href="/browse/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, cuisine))
 		self.response.write('</div>')
 		self.response.write(FOOTER_TEMPLATE)
 
@@ -921,7 +914,7 @@ class uploadPhotoPage(BaseHandler):
 
                  
             """)
-		self.response.write('</p><a href="/browse/%s/%s/%s?cuisine=%s"><< BACK</a>' % (city, rest, dish, cuisine))
+		self.response.write('</p><a href="/browse/%s/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, dish, cuisine))
 		self.response.write('</div>')
 		self.response.write(FOOTER_TEMPLATE)
 
