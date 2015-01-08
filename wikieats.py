@@ -642,16 +642,23 @@ class BrowseCities(BaseHandler):
 		active = "browse"
 		writeNav(self, active)
 		self.response.write('<div style="display: inline-block; ">')
-		self.response.write('<p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>Most Recent Uploads:</b></p></div>')
+		self.response.write('<p style="padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>Most Recent Uploads:</b></p></div>')
 
 		self.response.write('<ul class="rig">')
 		for p in result:
 			check = True
+			d = p.key.parent().get()
+			dish_name = d.name
+			r = d.key.parent().get()
+			rest_name = r.name
+			c = r.key.parent().get()
+			city = c.city
 			blob_info = blobstore.BlobInfo.get(p.blob_key)
-			self.response.write('<li><img src="/serve/%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div></li>' % (p.blob_key, p.rating))
+			self.response.write('<li><div style="font-size:20px; font-family:Arial;"><p style="text-align:center;"><strong>%s (%s)</strong></p><p style="text-align:center;">%s</p></div><img src="/serve/%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div></li>' % (rest_name, city, dish_name, p.blob_key, p.rating))
 		self.response.write('</ul>')
 
 		self.response.write('</div>')
+		
 		self.response.write(FOOTER_TEMPLATE)
 
 
