@@ -11,6 +11,11 @@ handlers:
 - url: /styles
   static_dir: styles
   
+- url: /(.*\.js)
+  mime_type: text/javascript
+  static_files: /\1
+  upload: /(.*\.js)
+
 - url: /scripts
   static_dir: scripts
   
@@ -25,7 +30,7 @@ handlers:
 - url: /forgot
   script: wikieats.application
   secure: always
-  
+
 - url: /.*
   script: wikieats.application
 

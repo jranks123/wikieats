@@ -15,6 +15,7 @@ import webapp2
 import logging
 import time
 import webapp2_extras.appengine.auth.models
+import re
 
 from google.appengine.ext import ndb
 from google.appengine.api import mail
@@ -268,7 +269,7 @@ class ForgotPasswordHandler(BaseHandler):
     writeNav(self, active)
     self.response.write('<div class="input_form"><h1>Recover password</h1><p>Forgot your password? Click the link below to receive a link to recover your password.</p>')
     if not_found:
-	  self.response.write('<strong>Not found!</strong> We could not found any user with the given username.')
+      self.response.write('<strong>Not found!</strong> We could not found any user with the given username.')
     self.response.write(FORGOT_TEMPLATE % username)
     self.response.write('</div>')
     self.response.write(FOOTER_TEMPLATE)
@@ -390,8 +391,10 @@ HEADER_TEMPLATE = """
 		<link rel="stylesheet" type="text/css" href="/styles/navbar.css">
 		<link rel="stylesheet" type="text/css" href="/styles/login.css">
 		<link rel="stylesheet" type="text/css" href="/styles/list.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 	</head>
 	<body>
+
 		<div style="position:fixed; left:0px; top:0px; height:110px; width:100%; background:#15967E; z-index:100;">
 			<div style="padding:5px;">
 				<a href="/"><img src="/images/wikieats_logo.png" width="99px" height="99px"></a>
@@ -410,7 +413,7 @@ NAV_1 = """
 	<div id='cssmenu'>
 		<form action="/selectcity" method="post">
 			<span class="dropdown">
-				<select name="city_link">
+				<select name="city_link" id="city_link">
 					<option value="none" class="noselect">Select City</option>
 	"""
 
@@ -418,7 +421,7 @@ NAV_2 = """
 				</select>
 			</span>
 			<span class="dropdown">
-			<select name="rest_type"> <option value="all">All Cuisines</option>
+			<select name="rest_type" id="rest_type"> <option value="all">All Cuisines</option>
 				<option value="indian">Indian</option>
 				<option value="pizza">Pizza</option>
 				<option value="chinese">Chinese</option>
@@ -430,7 +433,23 @@ NAV_2 = """
 				<option value="carribean">Carribean</option>
 			</select>
 			</span>
-			<input type="submit" value="GO">
+			<input type="submit" value="GO" id="goButton">
+      <script type="text/javascript">
+        $('#goButton').hide();
+        console.log("helo");
+        $('#city_link').on('change', function (e) {
+          var optionSelected = $("option:selected", this);
+          var text = optionSelected.text();
+          console.log(text);
+          if(text == "Select City"){
+          console.log("helo");
+          $('#goButton').hide();
+          }else{
+            console.log("#helssso");
+            $('#goButton').show();
+        }
+      });
+      </script>
 		</form>
 		
 		<ul>
@@ -462,7 +481,8 @@ ADD_NEW_RESTAURANT_TEMPLATE = """
 ADD_NEW_DISH_TEMPLATE = """
 	<div class="input_form">
 		<h1>Add Dish</h1>
-		<form action="/postdish2/%s/%s?cuisine=%s" method="POST">
+    {3}
+		<form action="/addnewdish/{0}/{1}?cuisine={2}" method="POST">
 			<input type="text" name="dish_name" placeholder="Name of Dish" required/>
 			<input type="text" name="dish_price" placeholder="Price (&pound)"/>
 			<input type="submit" value="Submit" />
@@ -845,37 +865,47 @@ class PostRestaurant2(webapp2.RequestHandler):
 	
 
 
-class AddNewDish(BaseHandler):
-	def get(self, city, rest):
-		cuisine = self.request.get('cuisine')
-		active = "dish"
-		writeNav(self, active)
-		self.response.out.write(ADD_NEW_DISH_TEMPLATE % (city, rest, cuisine))
-		self.response.write('</p><a href="/browse/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, cuisine))
-		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
+class AddNewDish(BaseHandler, ):  
+  def get(self, city, rest):
+		self._serve_page(city, rest)
 
+  def post(self, city, rest):
+    pattern = "\d+[.][0-9][0-9]"
+    check = re.compile(pattern)
+    if not check.search(self.request.get('dish_price')):
+      self._serve_page(city, rest, invalid_price=True)
+      return
 
-class PostDish2(webapp2.RequestHandler):
-	def post(self, city, rest):
-		cuisine = self.request.get('cuisine')
-		rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
-		#this ensures that an adversay cannot inject dishes to restaurants that do not exist in the database
-		if rkey.get() == None:
-			self.redirect('/browse/%s/%s?cuisine=%s' % (city, rest, cuisine))
-		else:
-			r = Dish(parent=rkey)
-			r.name = self.request.get('dish_name')
-			r.price = self.request.get('dish_price')
-			r.averageRating = 0.0
-			r.numberOfPhotos = 0
-			r.put()
-			check = False
-			while check == False:
-				result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
-				for r in result:
-					check = True
-					self.redirect('/browse/%s/%s?cuisine=%s' % (city, rest,cuisine))
+    cuisine = self.request.get('cuisine')
+    rkey = ndb.Key('City', int(city), 'Restaurant', int(rest))
+    #this ensures that an adversay cannot inject dishes to restaurants that do not exist in the database
+    if rkey.get() == None:
+      self.redirect('/browse/%s/%s?cuisine=%s' % (city, rest, cuisine))
+    else:
+      r = Dish(parent=rkey)
+      r.name = self.request.get('dish_name')
+      r.price = self.request.get('dish_price')
+      r.averageRating = 0.0
+      r.numberOfPhotos = 0
+      r.put()
+      check = False
+      while check == False:
+        result = Dish.query(ancestor = rkey).filter(Dish.name == r.name)
+        for r in result:
+          check = True
+          self.redirect('/browse/%s/%s?cuisine=%s' % (city, rest,cuisine))
+
+  def _serve_page(self, city, rest, invalid_price=False):
+    cuisine = self.request.get('cuisine')
+    active = "dish"
+    writeNav(self, active)
+    error = "<p></p>"
+    if invalid_price:
+      error = "<p style='color:red;'>Please enter a valid price (eg 10.00) </p>"
+    self.response.out.write(ADD_NEW_DISH_TEMPLATE.format(city, rest, cuisine, error))
+    self.response.write('</p><a href="/browse/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, cuisine))
+    self.response.write('</div>')
+    self.response.write(FOOTER_TEMPLATE)
 
 					
 ##################################
@@ -980,9 +1010,8 @@ application = webapp2.WSGIApplication([
 	
 	##### ADD WHILST BROWSING #####
     ('/addnewrestaurant/([^/]+)?', AddNewRestaurant),
-	('/postrestaurant2/([^/]+)?', PostRestaurant2),
+	  ('/postrestaurant2/([^/]+)?', PostRestaurant2),
     ('/addnewdish/([^/]+)?/([^/]+)?', AddNewDish),
-    ('/postdish2/([^/]+)?/([^/]+)?', PostDish2),
 	
 	
 	##### USER AUTHENTICATION #####
