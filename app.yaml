@@ -7,15 +7,33 @@ threadsafe: true
 handlers:
 - url: /images
   static_dir: images
+  
 - url: /styles
   static_dir: styles
+  
+- url: /(.*\.js)
+  mime_type: text/javascript
+  static_files: /\1
+  upload: /(.*\.js)
+
 - url: /scripts
   static_dir: scripts
+  
+- url: /signup
+  script: wikieats.application
+  secure: always
+  
+- url: /login
+  script: wikieats.application
+  secure: always
+  
+- url: /forgot
+  script: wikieats.application
+  secure: always
+
 - url: /.*
   script: wikieats.application
 
 libraries:
 - name: webapp2
   version: latest
-- name: PIL
-  version: 1.1.7
