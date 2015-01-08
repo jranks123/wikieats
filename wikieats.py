@@ -35,7 +35,7 @@ from webapp2_extras.auth import InvalidPasswordError
 ###################################
 
 PASSWORD_RESET_EMAIL = """
-%s,
+Dear %s,
 Your password can be reset by clicking the following link:
 
 %s
@@ -45,7 +45,7 @@ The WikiEats Team
 """
 
 ACCOUNT_CONFIRM = """
-%s,
+Dear %s,
 Please confirm your account by clicking the following link:
 
 %s
@@ -200,79 +200,88 @@ class MainHandler(BaseHandler):
     self.response.write('<li><a href="/authenticated">Authenticated</a></li></ul>')
 
 class SignupHandler(BaseHandler):
-  def get(self):
-    active = "register"
-    writeNav(self, active)
-    self.response.write(SIGNUP_TEMPLATE)
-    self.response.write(FOOTER_TEMPLATE)
+	def get(self):
+		active = "register"
+		writeNav(self, active)
+		self.response.write(SIGNUP_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE)
+		
+	def post(self):
+		user_name = self.request.get('username')
+		email = self.request.get('email')
+		password = self.request.get('password')
+
+		unique_properties = ['email_address']
+		user_data = self.user_model.create_user(user_name,
+			unique_properties,
+			email_address=email, name=user_name, password_raw=password,
+			verified=False)
+		if not user_data[0]: #user_data is a tuple
+			self.display_message('Unable to create user for email %s because of duplicate keys %s' % (user_name, user_data[1]))
+			return
+		
+		user = user_data[1]
+		user_id = user.get_id()
+
+		token = self.user_model.create_signup_token(user_id)
+
+		verification_url = self.uri_for('verification', type='v', user_id=user_id, signup_token=token, _full=True)
+		  
+		message = mail.EmailMessage(sender="WikiEats Admin<wiki-eats@appspot.gserviceaccount.com>",subject="Account Confirmation Email",to="%s <%s>"% (user.name,user.email_address))
+		message.body = ACCOUNT_CONFIRM % (user.name,verification_url)
+		message.send()
+		
+		self.redirect('/confirmemailsent')
     
-  def post(self):
-    user_name = self.request.get('username')
-    email = self.request.get('email')
-    password = self.request.get('password')
-
-    unique_properties = ['email_address']
-    user_data = self.user_model.create_user(user_name,
-      unique_properties,
-      email_address=email, name=user_name, password_raw=password,
-      verified=False)
-    if not user_data[0]: #user_data is a tuple
-      self.display_message('Unable to create user for email %s because of \
-        duplicate keys %s' % (user_name, user_data[1]))
-      return
-    
-    user = user_data[1]
-    user_id = user.get_id()
-
-    token = self.user_model.create_signup_token(user_id)
-
-    verification_url = self.uri_for('verification', type='v', user_id=user_id,
-      signup_token=token, _full=True)
-	  
-    #mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Account Confirmation",body = ACCOUNT_CONFIRM % (user.name,verification_url))
-
-    msg = 'Send an email to user in order to verify their address. \
-          They will be able to do so by visiting <a href="{url}">{url}</a>'
-
-    self.display_message(msg.format(url=verification_url))
-
-class ForgotPasswordHandler(BaseHandler):
-  def get(self):
-    self._serve_page()
-
-  def post(self):
-    username = self.request.get('username')
-
-    user = self.user_model.get_by_auth_id(username)
-    if not user:
-      logging.info('Could not find any user entry for username %s', username)
-      self._serve_page(not_found=True)
-      return
-
-    user_id = user.get_id()
-    token = self.user_model.create_signup_token(user_id)
-
-    verification_url = self.uri_for('verification', type='p', user_id=user_id,
-      signup_token=token, _full=True)
-
-    #mail.send_mail(sender="WikiEats Support <support@wikieats.com>",to = user.email_address,subject="WikiEats Password Reset",body = PASSWORD_RESET_EMAIL % (user.name,verification_url))
+class ConfirmEmailSent(BaseHandler):
+	def get(self):
+		active = "emailsent"
+		writeNav(self, active)
+		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>A Confirmation email has been sent to your email address.</p><p>Please follow the attached link to validate your account.</p></div>')
+		self.response.write(FOOTER_TEMPLATE)
 	
-    msg = 'Send an email to user in order to reset their password. \
-          They will be able to do so by visiting <a href="{url}">{url}</a>'
+class ForgotPasswordHandler(BaseHandler):
+	def get(self):
+		self._serve_page()
 
-    self.display_message(msg.format(url=verification_url))
-  
-  def _serve_page(self, not_found=False):
-    username = self.request.get('username')
-    active = "forgot"
-    writeNav(self, active)
-    self.response.write('<div class="input_form"><h1>Recover password</h1><p>Forgot your password? Click the link below to receive a link to recover your password.</p>')
-    if not_found:
-	  self.response.write('<strong>Not found!</strong> We could not found any user with the given username.')
-    self.response.write(FORGOT_TEMPLATE % username)
-    self.response.write('</div>')
-    self.response.write(FOOTER_TEMPLATE)
+	def post(self):
+		username = self.request.get('username')
 
+		user = self.user_model.get_by_auth_id(username)
+		if not user:
+			logging.info('Could not find any user entry for username %s', username)
+			self._serve_page(not_found=True)
+			return
+
+		user_id = user.get_id()
+		token = self.user_model.create_signup_token(user_id)
+
+		verification_url = self.uri_for('verification', type='p', user_id=user_id,
+			signup_token=token, _full=True)
+
+		message = mail.EmailMessage(sender="WikiEats Admin<wiki-eats@appspot.gserviceaccount.com>",subject="Password Reset Email",to="%s <%s>"% (user.name,user.email_address))
+		message.body = PASSWORD_RESET_EMAIL % (user.name,verification_url)
+		message.send()
+		
+		self.redirect('/forgotemailsent')
+	  
+	def _serve_page(self, not_found=False):
+		username = self.request.get('username')
+		active = "forgot"
+		writeNav(self, active)
+		self.response.write('<div class="input_form"><h1>Reset password</h1><p>Forgot your password? Click the link below to receive a link to reset your password.</p>')
+		if not_found:
+			self.response.write('<p style="color:red"><strong>Not found!</strong> We could not find any user with the given username.</p>')
+		self.response.write(FORGOT_TEMPLATE % username)
+		self.response.write('</div>')
+		self.response.write(FOOTER_TEMPLATE)
+
+class ForgotEmailSent(BaseHandler):
+	def get(self):
+		active = "emailsent"
+		writeNav(self, active)
+		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>A Verification email has been sent to your email address.</p><p>Please follow the attached link to reset your password.</p></div>')
+		self.response.write(FOOTER_TEMPLATE)
 
 class VerificationHandler(BaseHandler):
   def get(self, *args, **kwargs):
@@ -333,7 +342,14 @@ class SetPasswordHandler(BaseHandler):
     # remove signup token, we don't want users to come back with an old link
     self.user_model.delete_signup_token(user.get_id(), old_token)
     
-    self.display_message('Password updated')
+    self.redirect('/passwordupdated')
+	
+class PasswordUpdated(BaseHandler):
+	def get(self):
+		active = "passwordupdated"
+		writeNav(self, active)
+		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>Your password has been successfully updated!</p></div>')
+		self.response.write(FOOTER_TEMPLATE)
 
 class LoginHandler(BaseHandler):
   def get(self):
@@ -621,9 +637,21 @@ def writeNav(self, active):
 ##############################		
 class BrowseCities(BaseHandler):
 	def get(self):
+		result = Photo.query().order(-Photo.created).fetch(8)
+		check = False
 		active = "browse"
 		writeNav(self, active)
-		self.response.write('DISPLAY MOST RECENT UPLOADS???')
+		self.response.write('<div style="display: inline-block; ">')
+		self.response.write('<p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>Most Recent Uploads:</b></p></div>')
+
+		self.response.write('<ul class="rig">')
+		for p in result:
+			check = True
+			blob_info = blobstore.BlobInfo.get(p.blob_key)
+			self.response.write('<li><img src="/serve/%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div></li>' % (p.blob_key, p.rating))
+		self.response.write('</ul>')
+
+		self.response.write('</div>')
 		self.response.write(FOOTER_TEMPLATE)
 
 
@@ -987,11 +1015,14 @@ application = webapp2.WSGIApplication([
 	
 	##### USER AUTHENTICATION #####
     ('/signup', SignupHandler),
+	('/confirmemailsent', ConfirmEmailSent),
     webapp2.Route('/<type:v|p>/<user_id:\d+>-<signup_token:.+>',handler=VerificationHandler, name='verification'),
     ('/password', SetPasswordHandler),
+    ('/passwordupdated', PasswordUpdated),
     ('/login', LoginHandler),
     ('/logout', LogoutHandler),
     ('/forgot', ForgotPasswordHandler),
+	('/forgotemailsent', ForgotEmailSent),
     ('/authenticated', AuthenticatedHandler),
 	
     
