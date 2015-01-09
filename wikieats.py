@@ -407,6 +407,7 @@ HEADER_TEMPLATE = """
 		<link rel="stylesheet" type="text/css" href="/styles/navbar.css">
 		<link rel="stylesheet" type="text/css" href="/styles/login.css">
 		<link rel="stylesheet" type="text/css" href="/styles/list.css">
+    <link rel="stylesheet" type="text/css" href="/styles/advanced.css">
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 	</head>
 	<body>
@@ -424,6 +425,68 @@ FOOTER_TEMPLATE = """
 		</body>
 	</html>
 """
+
+ADVANCED_TEMPLATE_1 = """
+  <div class="input_form">
+    <h1>Advanced Search</h1>
+    <form action="/advancedSearch" method="post">
+          <select name="city_link_adv"> 
+          <option value="none" class="noselect">Select City</option>
+  """
+
+ADVANCED_TEMPLATE_2 = """
+        </select>
+        <input type="text" name="dish_name" placeholder="Name of dish" class="required" required/>  
+        <select name="price_select" id="price_select"> 
+          <option value="anyPrice">Any Price</option>
+          <option value="lessThan">Less Than</option>
+        </select>
+        <input type="text" name="price" id="price" placeholder="&pound">
+        <select name="distance_select" id="distance_select"> 
+          <option value="anyDistance">Any Distance</option>
+          <option value="0.1"> &lt1 miles </option>
+          <option value="1"> &lt1 miles </option>
+          <option value="3"> &lt3 miles </option>
+          <option value="5"> &lt5 miles </option>
+          <option value="10"> &lt10 miles </option>
+        </select>
+        <input type="text" name="postcode" id="postcode" placeholder="Your Postcode">
+      <input type="submit" value="Search" />
+    </form>
+    </div>
+    <script type="text/javascript">
+
+
+
+        $('#price').hide();
+        $('#postcode').hide();
+        $('#price_select').on('change', function (e) {
+          var optionSelected = $("option:selected", this);
+          var text = optionSelected.text();
+          if(text == "Any Price"){
+            $('#price').hide();
+            $('#price').val('');
+          }else{
+           $('#price').show();
+         }
+        });
+
+        $('#distance_select').on('change', function (e) {
+          var optionSelected = $("option:selected", this);
+          var text = optionSelected.text();
+          if(text == "Any Distance"){
+            $('#postcode').hide();
+            $('#price').val('');
+          }else{
+           $('#postcode').show();
+         }
+        });
+
+      
+      </script>
+
+"""
+
 
 NAV_1 = """
 	<div id='cssmenu'>
@@ -484,12 +547,14 @@ ADD_NEW_RESTAURANT_TEMPLATE = """
 				<option value="chicken">Chicken</option>
 				<option value="carribean">Carribean</option>
 			</select>
-			<input type="text" name="rest_postcode" placeholder="Postcode"/>
+			<input type="text" name="rest_postcode" placeholder="Postcode" required/>
 			<input type="text" name="rest_phone" placeholder="Phone Number"/>
 			<input type="submit" value="Submit" />
 		</form>
 	</div>
 """
+
+
 
 ADD_NEW_DISH_TEMPLATE = """
 	<div class="input_form">
@@ -497,7 +562,7 @@ ADD_NEW_DISH_TEMPLATE = """
     {3}
 		<form action="/addnewdish/{0}/{1}?cuisine={2}" method="POST">
 			<input type="text" name="dish_name" placeholder="Name of Dish" required/>
-			<input type="text" name="dish_price" placeholder="Price (&pound)"/>
+			<input type="text" name="dish_price" placeholder="Price (&pound)" required/>
 			<input type="submit" value="Submit" />
 		</form>
 	</div>
@@ -552,7 +617,6 @@ class clearDatabase(webapp2.RequestHandler):
 
 class postcode(webapp2.RequestHandler):
 	def get(self):
-		self.response.write(HEADER_TEMPLATE)
 		self.response.write(ENTER_POSTCODE_TEMPLATE)
 		self.response.write(FOOTER_TEMPLATE)
 
@@ -562,7 +626,6 @@ class getPostcodeDistance(webapp2.RequestHandler):
 		post1 = urllib.quote_plus(self.request.get('postcode1'))
 		post2 = urllib.quote_plus(self.request.get('postcode2'))
 		data = json.load(urllib2.urlopen('http://maps.googleapis.com/maps/api/distancematrix/json?origins='+post1+'&destinations='+post2+'&mode=driving&language=en-EN&sensor=false"'))
-		self.response.write(HEADER_TEMPLATE)
 		if(data["rows"][0]["elements"][0]["status"] == 'OK'):
 		#self.response.write(data)
 			self.response.write(data["rows"][0]["elements"][0]["distance"]["value"] * 0.000621371)
@@ -588,7 +651,7 @@ class Restaurant(ndb.Model):
 
 class Dish(ndb.Model):
 	name = ndb.StringProperty(required=True)
-	price = ndb.StringProperty(required=True)
+	price = ndb.FloatProperty(required=True)
 	averageRating = ndb.FloatProperty(required=True)
 	numberOfPhotos = ndb.IntegerProperty(required=True)
 
@@ -622,6 +685,12 @@ def starRating(self, rating):
 	elif  rating == 5:
 		self.response.write('<img src="/images/5_star.png" style="display:inline;" height="40px" width="200px">')
 
+def writeAdvanced(self):
+  self.response.write(ADVANCED_TEMPLATE_1)
+  cities = City.query().order(City.city)
+  for c in cities:
+      self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+  self.response.write(ADVANCED_TEMPLATE_2)
 
 
 def writeNav(self, active):
@@ -680,14 +749,152 @@ class BrowseCities(BaseHandler):
 
 
 class SelectCity(webapp2.RequestHandler):
-    def post(self):
+  def post(self):
 		city_link = self.request.get('city_link')
 		cuisine = self.request.get('rest_type')
 		if(city_link == "none"):
 			self.redirect('/browse')
 		else:
 			self.redirect('/browse/%s?cuisine=%s' % (city_link, cuisine))
-		
+
+class advancedSearch(BaseHandler):
+  def get (self):
+    writeNav(self, "browse")
+    writeAdvanced(self)
+    self.response.write(FOOTER_TEMPLATE)
+
+  def post(self):
+    city = self.request.get("city_link_adv")
+    dish = self.request.get("dish_name")
+    price = self.request.get("price") 
+    postcode = self.request.get("postcode")
+    distance = self.request.get("distance_select")
+
+    self.redirect('/advancedSearch/result?city=%s&dish=%s&price=%s&postcode=%s&distance=%s' % (city, dish, price, postcode, distance))
+
+
+class advancedSearchResult(BaseHandler):
+  def get(self, result):
+    sorted = self.request.get('order')
+    writeNav(self, "browse")
+    city = self.request.get('city')
+    dish = self.request.get('dish')
+    price = self.request.get('price')
+    postcode = self.request.get('postcode')
+    distance = self.request.get('distance')
+    city_key = ndb.Key('City', int(city))
+    result = Dish.query(ancestor=city_key)
+
+    if sorted == "zyx":
+      ordering = -Dish.name
+    elif sorted == "top":
+      ordering = -Dish.averageRating
+    elif sorted == "bottom":
+      ordering = Dish.averageRating
+    elif sorted == "high":
+      ordering = -Dish.price
+    elif sorted == "low":
+      ordering = Dish.price
+    else:
+      ordering = -Dish.averageRating
+
+    result = result.order(ordering)
+    check = False
+    self.response.write('<div class="liststatus">Showing all "%s" dishes in %s' % (dish, city_key.get().city))
+    if price:
+      self.response.write(' for under &pound%s' % price)
+    if postcode:
+      self.response.write(', within %s miles of %s' % (distance, postcode))
+    self.response.write('<form action="/advancedSearch/result" method="GET" class="sortorder"><select name="order" onchange="this.form.submit()">')
+
+    
+    self.response.write('<option value="top"')
+    if sorted == "top":
+      self.response.write('selected')
+    self.response.write('>Rating (High-Low)</option>')
+    
+    
+    self.response.write('<option value="bottom"')
+    if sorted == "bottom":
+      self.response.write('selected')
+    self.response.write('>Rating (Low-High)</option>')
+
+    self.response.write('<option value="abc"')
+    if sorted == "abc":
+      self.response.write('selected')
+    self.response.write('>Alphabetical (A-Z)</option>')
+    
+    
+    self.response.write('<option value="zyx"')
+    if sorted == "zyx":
+      self.response.write('selected')
+    self.response.write('>Alphabetical (Z-A)</option>')
+    
+    
+    
+    self.response.write('<option value="high"')
+    if sorted == "high":
+      self.response.write('selected')
+    self.response.write('>Price (High-Low)</option>')
+    
+    
+    self.response.write('<option value="low"')
+    if sorted == "low":
+      self.response.write('selected')
+    self.response.write('>Price (Low-High)</option>')
+    
+    self.response.write('<input type="hidden" value="%s" name="city">' % (city))
+    self.response.write('<input type="hidden" value="%s" name="dish">' % (dish))
+    self.response.write('<input type="hidden" value="%s" name="price">' % (price))
+    self.response.write('<input type="hidden" value="%s" name="postcode">' % (postcode))
+    self.response.write('<input type="hidden" value="%s" name="distance">' % (distance))
+    self.response.write('</select></form>')
+    self.response.write('</div>')
+    if result:
+      anyDishFound = False;
+      self.response.write('<div class="listdisplay">')
+      for r in result:
+        dishFound = False
+        if dish in r.name:
+          restaurant = r.key.parent().get()
+          if postcode:
+            post1 = urllib.quote_plus(postcode)
+            post2 = urllib.quote_plus(restaurant.postcode)
+            data = json.load(urllib2.urlopen('http://maps.googleapis.com/maps/api/distancematrix/json?origins='+post1+'&destinations='+post2+'&mode=driving&language=en-EN&sensor=false"'))
+            if data:
+              if(data["rows"][0]["elements"][0]["status"] == 'OK'):
+                postDifference = data["rows"][0]["elements"][0]["distance"]["value"] * 0.000621371
+                if (float(postDifference)) < float(distance):
+                  if price:
+                    if(float(r.price) < float(price)):
+                      dishFound = True
+                  else:
+                    dishFound = True
+              else:
+                self.response.write('invalid postcode')
+          elif price:
+            if(float(r.price) < float(price)):
+              dishFound = True
+          else:
+            dishFound = True
+        if dishFound == True:
+          self.response.write('<div><a href="/browse/%s/%s/%s?cuisine=all"> <strong>%s</strong> - %s (&pound%.2f) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, r.key.parent().id(), r.key.id(), restaurant.name, r.name, r.price))
+          avg_rating = r.averageRating
+          if avg_rating:
+            rounded = round(avg_rating * 2) / 2
+            starRating(self, rounded)
+          self.response.write('</div></div></a></div>')
+          anyDishFound = True
+      if anyDishFound == False:
+        self.response.write("NO RESULTS")
+      self.response.write('</div>')
+    else:
+      self.response.write("NO RESULTS")
+
+    self.response.write('<a href="/advancedSearch?city=%s&dish=%s&price=%s&postcode=%s&distance=%s"><input class="addtolist" value="Try again"></a></p>' % (city, dish, price, postcode, distance))
+
+
+
 class BrowseRestaurants(BaseHandler):
 	def get(self, city):
 		cuisine = self.request.get('cuisine')
@@ -716,7 +923,7 @@ class BrowseRestaurants(BaseHandler):
 			self.response.write('selected')
 		self.response.write('>Alphabetical (Z-A)</option>')
 		
-		self.response.write('<input type="hidden" value="%s" name="cuisine"' % (cuisine))
+		self.response.write('<input type="hidden" value="%s" name="cuisine">' % (cuisine))
 		self.response.write('</select></div><div class="listdisplay">')
 		for r in result:
 			if(r.cuisine == cuisine or cuisine == 'all'):
@@ -803,7 +1010,7 @@ class BrowseDishes(BaseHandler):
 			check = True
 			#Here we need to make it display stars instead of the number
 			d = Dish.get_by_id(d.key.id(), d.key.parent())
-			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%s) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, rest, d.key.id(), cuisine, d.name, d.price))
+			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%.2f) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, rest, d.key.id(), cuisine, d.name, d.price))
 			
 			avg_rating = d.averageRating
 			if avg_rating:
@@ -833,7 +1040,7 @@ class DisplayDish(BaseHandler):
 		writeNav(self, active)
 		d = Dish.get_by_id(photo_key.id(), photo_key.parent())
 		self.response.write('<div style="display: inline-block; ">')
-		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%s</p></div>' % (d.name, d.price))
+		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%.2f</p></div>' % (d.name, d.price))
 
 		avg_rating = d.averageRating
 		if avg_rating:
@@ -902,7 +1109,7 @@ class AddNewDish(BaseHandler, ):
 		self._serve_page(city, rest)
 
   def post(self, city, rest):
-    pattern = "\d+[.][0-9][0-9]"
+    pattern = "(?<!.)\d+([.]\d{2})?(?!.)"
     check = re.compile(pattern)
     if not check.search(self.request.get('dish_price')):
       self._serve_page(city, rest, invalid_price=True)
@@ -916,7 +1123,7 @@ class AddNewDish(BaseHandler, ):
     else:
       r = Dish(parent=rkey)
       r.name = self.request.get('dish_name')
-      r.price = self.request.get('dish_price')
+      r.price = float(self.request.get('dish_price'))
       r.averageRating = 0.0
       r.numberOfPhotos = 0
       r.put()
@@ -1039,7 +1246,9 @@ application = webapp2.WSGIApplication([
     ('/browse/([^/]+)?', BrowseRestaurants),
     ('/browse/([^/]+)?/([^/]+)?', BrowseDishes),
     ('/browse/([^/]+)?/([^/]+)?/([^/]+)?', DisplayDish),
-	
+    ('/advancedSearch', advancedSearch),
+    ('/advancedSearch/([^/]+)?', advancedSearchResult),
+
 	##### ADD WHILST BROWSING #####
     ('/addnewrestaurant/([^/]+)?', AddNewRestaurant),
 	('/postrestaurant2/([^/]+)?', PostRestaurant2),

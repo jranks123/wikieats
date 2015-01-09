@@ -687,6 +687,11 @@ class SelectCity(webapp2.RequestHandler):
 			self.redirect('/browse')
 		else:
 			self.redirect('/browse/%s?cuisine=%s' % (city_link, cuisine))
+
+class advancedSearch(BaseHandler):
+	def get (self):
+		writeNav(self, active)
+		self.response.write(FOOTER_TEMPLATE)
 		
 class BrowseRestaurants(BaseHandler):
 	def get(self, city):
@@ -1039,6 +1044,7 @@ application = webapp2.WSGIApplication([
     ('/browse/([^/]+)?', BrowseRestaurants),
     ('/browse/([^/]+)?/([^/]+)?', BrowseDishes),
     ('/browse/([^/]+)?/([^/]+)?/([^/]+)?', DisplayDish),
+    ('/advancedSearch', advancedSearch),
 	
 	##### ADD WHILST BROWSING #####
     ('/addnewrestaurant/([^/]+)?', AddNewRestaurant),
