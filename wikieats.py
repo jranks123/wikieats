@@ -205,7 +205,8 @@ class SignupHandler(BaseHandler):
 		active = "register"
 		writeNav(self, active)
 		self.response.write(SIGNUP_TEMPLATE)
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt Register'
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 	def post(self):
 		user_name = self.request.get('username')
@@ -218,7 +219,7 @@ class SignupHandler(BaseHandler):
 			email_address=email, name=user_name, password_raw=password,
 			verified=False)
 		if not user_data[0]: #user_data is a tuple
-			self.display_message('Unable to create user for email %s because of duplicate keys %s' % (user_name, user_data[1]))
+			self.display_message('Unable to create user for user %s because of duplicate keys %s' % (user_name, user_data[1]))
 			return
 		
 		user = user_data[1]
@@ -239,7 +240,7 @@ class ConfirmEmailSent(BaseHandler):
 		active = "emailsent"
 		writeNav(self, active)
 		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>A Confirmation email has been sent to your email address.</p><p>Please follow the attached link to validate your account.</p></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 	
 class ForgotPasswordHandler(BaseHandler):
 	def get(self):
@@ -275,14 +276,15 @@ class ForgotPasswordHandler(BaseHandler):
 			self.response.write('<p style="color:red"><strong>Not found!</strong> We could not find any user with the given username.</p>')
 		self.response.write(FORGOT_TEMPLATE % username)
 		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt <a href="/">Login</a> &gt Forgot Password'
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 class ForgotEmailSent(BaseHandler):
 	def get(self):
 		active = "emailsent"
 		writeNav(self, active)
 		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>A Verification email has been sent to your email address.</p><p>Please follow the attached link to reset your password.</p></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 class VerificationHandler(BaseHandler):
   def get(self, *args, **kwargs):
@@ -295,8 +297,7 @@ class VerificationHandler(BaseHandler):
     # self.auth.get_user_by_token(user_id, signup_token)
     # unfortunately the auth interface does not (yet) allow to manipulate
     # signup tokens concisely
-    user, ts = self.user_model.get_by_auth_token(int(user_id), signup_token,
-      'signup')
+    user, ts = self.user_model.get_by_auth_token(int(user_id), signup_token, 'signup')
 
     if not user:
       logging.info('Could not find any user with id "%s" signup token "%s"',
@@ -313,15 +314,18 @@ class VerificationHandler(BaseHandler):
       if not user.verified:
         user.verified = True
         user.put()
-
-      self.display_message('User email address has been verified.')
+      
+      active = "emailverified"
+      writeNav(self, active)
+      self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>Your email address has been verified.</p></div>')
+      self.response.write(FOOTER_TEMPLATE.format(""))
       return
     elif verification_type == 'p':
       # supply user to the page
       active = "verify"
       writeNav(self, active)
       self.response.write(RESET_PASSWORD_TEMPLATE %(signup_token))
-      self.response.write(FOOTER_TEMPLATE)
+      self.response.write(FOOTER_TEMPLATE.format(""))
     else:
       logging.info('verification type not supported')
       self.abort(404)
@@ -350,7 +354,7 @@ class PasswordUpdated(BaseHandler):
 		active = "passwordupdated"
 		writeNav(self, active)
 		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>Your password has been successfully updated!</p></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 class LoginHandler(BaseHandler):
   def get(self):
@@ -377,7 +381,9 @@ class LoginHandler(BaseHandler):
       self.response.write('<p><strong>Login failed!</strong> Check your credentials and try again.</p>')
 
     self.response.write(LOGIN_TEMPLATE % (username))
-    self.response.write(FOOTER_TEMPLATE)
+	
+    pathway = '<a href="/">HOME</a> &gt Login'
+    self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 class LogoutHandler(BaseHandler):
   def get(self):
@@ -420,7 +426,11 @@ HEADER_TEMPLATE = """
 
 FOOTER_TEMPLATE = """
 			</div>
-			<div style="position:fixed; left:0px; bottom:0px; height:30px; width:100%; background:#15967E; z-index:100; "></div>
+			<div style="position:fixed; left:0px; bottom:0px; height:100px; width:100%; background:#15967E; z-index:100; ">
+				<div class="pathway">
+					{0}
+				</div>
+			</div>
 		</body>
 	</html>
 """
@@ -438,15 +448,15 @@ NAV_2 = """
 			</span>
 			<span class="dropdown">
 			<select name="rest_type" id="rest_type"> <option value="all">All Cuisines</option>
-				<option value="indian">Indian</option>
-				<option value="pizza">Pizza</option>
-				<option value="chinese">Chinese</option>
-				<option value="kebab">Kebab</option>
-				<option value="italian">Italian</option>
-				<option value="fishandchips">Fish & Chips</option>
-				<option value="america">American</option>
-				<option value="chicken">Chicken</option>
-				<option value="carribean">Carribean</option>
+				<option value="Indian">Indian</option>
+				<option value="Pizza">Pizza</option>
+				<option value="Chinese">Chinese</option>
+				<option value="Kebab">Kebab</option>
+				<option value="Italian">Italian</option>
+				<option value="Fishandchips">Fish & Chips</option>
+				<option value="American">American</option>
+				<option value="Chicken">Chicken</option>
+				<option value="Carribean">Carribean</option>
 			</select>
 			</span>
 			<input type="submit" value="GO" id="goButton">
@@ -469,37 +479,39 @@ NAV_2 = """
 """
 
 ADD_NEW_RESTAURANT_TEMPLATE = """
-	<div class="input_form">
-		<h1>Add Restaurant</h1>
-		<form action="/postrestaurant2/%s?cuisine=%s" method="POST">
-			<input type="text" name="rest_name" placeholder="Restaurant Name" required/>
-			<select name="rest_type">
-				<option value="indian">Indian</option>
-				<option value="pizza">Pizza</option>
-				<option value="chinese">Chinese</option>
-				<option value="kebab">Kebab</option>
-				<option value="italian">Italian</option>
-				<option value="fishandchips">Fish & Chips</option>
-				<option value="america">American</option>
-				<option value="chicken">Chicken</option>
-				<option value="carribean">Carribean</option>
-			</select>
-			<input type="text" name="rest_postcode" placeholder="Postcode"/>
-			<input type="text" name="rest_phone" placeholder="Phone Number"/>
-			<input type="submit" value="Submit" />
-		</form>
+		<div class="input_form">
+			<h1>Add Restaurant</h1>
+			<form action="/postrestaurant2/%s?cuisine=%s" method="POST">
+				<input type="text" name="rest_name" placeholder="Restaurant Name" required/>
+				<select name="rest_type">
+					<option value="Indian">Indian</option>
+					<option value="Pizza">Pizza</option>
+					<option value="Chinese">Chinese</option>
+					<option value="Kebab">Kebab</option>
+					<option value="Italian">Italian</option>
+					<option value="Fishandchips">Fish & Chips</option>
+					<option value="American">American</option>
+					<option value="Chicken">Chicken</option>
+					<option value="Carribean">Carribean</option>
+				</select>
+				<input type="text" name="rest_postcode" placeholder="Postcode"/>
+				<input type="text" name="rest_phone" placeholder="Phone Number"/>
+				<input type="submit" value="Submit" />
+			</form>
+		</div>
 	</div>
 """
 
 ADD_NEW_DISH_TEMPLATE = """
-	<div class="input_form">
-		<h1>Add Dish</h1>
-    {3}
-		<form action="/addnewdish/{0}/{1}?cuisine={2}" method="POST">
-			<input type="text" name="dish_name" placeholder="Name of Dish" required/>
-			<input type="text" name="dish_price" placeholder="Price (&pound)"/>
-			<input type="submit" value="Submit" />
-		</form>
+		<div class="input_form">
+			<h1>Add Dish</h1>
+			{3}
+			<form action="/addnewdish/{0}/{1}?cuisine={2}" method="POST">
+				<input type="text" name="dish_name" placeholder="Name of Dish" required/>
+				<input type="text" name="dish_price" placeholder="Price (&pound)"/>
+				<input type="submit" value="Submit" />
+			</form>
+		</div>
 	</div>
 """
 
@@ -522,7 +534,7 @@ class admin(webapp2.RequestHandler):
 		self.response.write('<input type = "submit" value = "Add All Cities From File"></form>')
 		self.response.write('<form action="/clearDatabase" method="post">')
 		self.response.write('<input type = "submit" value = "Clear Database"></form>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 class addAllCities(webapp2.RequestHandler):
 	def post(self):
@@ -554,7 +566,7 @@ class postcode(webapp2.RequestHandler):
 	def get(self):
 		self.response.write(HEADER_TEMPLATE)
 		self.response.write(ENTER_POSTCODE_TEMPLATE)
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 
 class getPostcodeDistance(webapp2.RequestHandler):
@@ -568,7 +580,7 @@ class getPostcodeDistance(webapp2.RequestHandler):
 			self.response.write(data["rows"][0]["elements"][0]["distance"]["value"] * 0.000621371)
 		else:
 			self.response.write('invalid postcode')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 
 
@@ -637,16 +649,16 @@ def writeNav(self, active):
 		if u:
 			greeting = ('<li class="last"><a href="/logout"><span>Logout</span></a></li>')
 		elif active == "login":
-			greeting = ('<li class="active"><a href="/login"><span>Sign In</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
+			greeting = ('<li class="active"><a href="/login"><span>Login</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
 		elif active == "register":
-			greeting = ('<li><a href="/login"><span>Sign In</span></a></li><li class="active last"><a href="/signup"><span>Register</span></a></li>')
+			greeting = ('<li><a href="/login"><span>Login</span></a></li><li class="active last"><a href="/signup"><span>Register</span></a></li>')
 		else:
-			greeting = ('<li><a href="/login"><span>Sign In</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
+			greeting = ('<li><a href="/login"><span>Login</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
 		self.response.write(greeting)
 		
 		self.response.write('</ul></div>')
 		
-		self.response.write('<div style="position:relative; top:175px; margin-bottom:50px;">')
+		self.response.write('<div style="position:relative; top:175px; margin-bottom:120px;">')
 
 		
 ##############################
@@ -675,8 +687,8 @@ class BrowseCities(BaseHandler):
 		self.response.write('</ul>')
 
 		self.response.write('</div>')
-		
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = ""
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 
 class SelectCity(webapp2.RequestHandler):
@@ -731,15 +743,16 @@ class BrowseRestaurants(BaseHandler):
 		u = self.auth.get_user_by_session()
 		if u:
 			self.response.write('<a href="/addnewrestaurant/%s?cuisine=%s"><input class="addtolist" value="ADD NEW RESTAURANT"></a></p>' % (city, cuisine))
-			
-		self.response.write('<a class="backbutton "href="/browse">BACK</a></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		
+		pathway = '<a href="/">HOME</a> &gt ' + city_key.get().city
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 class BrowseDishes(BaseHandler):
 	def get(self, city, rest):
 		cuisine = self.request.get('cuisine')
 		sorted = self.request.get('order')
 		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+		city_key = ndb.Key('City', int(city))
 		
 		if sorted == "zyx":
 			ordering = -Dish.name
@@ -820,13 +833,15 @@ class BrowseDishes(BaseHandler):
 		if u:
 			self.response.write('<a  href="/addnewdish/%s/%s?cuisine=%s"><input class="addtolist" value="ADD NEW DISH"></a></p>' % (city, rest, cuisine))
 		
-		self.response.write('<a class="backbutton" href="/browse/%s?cuisine=%s">BACK</a></div>' % (city, cuisine))
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt <a href="/browse/%s?cuisine=%s">%s</a> &gt %s' % (city, cuisine, city_key.get().city, rest_key.get().name)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 class DisplayDish(BaseHandler):
 	def get(self, city, rest, dish):
 		cuisine = self.request.get('cuisine')
 		photo_key = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
+		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+		city_key = ndb.Key('City', int(city))
 		result = Photo.query(ancestor = photo_key).order(-Photo.created).fetch(10)
 		check = False
 		active = "display"
@@ -856,44 +871,42 @@ class DisplayDish(BaseHandler):
 		u = self.auth.get_user_by_session()
 		if u:
 			self.response.write('<a href="/uploadPhotoPage/%s/%s/%s?cuisine=%s"><input class="addtolist" value="Upload"></a></p>' % (city, rest, dish, cuisine))
-		
-		self.response.write('<a class="backbutton" href="/browse/%s/%s?cuisine=%s">BACK</a></div>' % (city, rest, cuisine))
-		self.response.write(FOOTER_TEMPLATE)
-	
-	
-#########################################
-########## ADD WHILST BROWSING ##########
-#########################################
+			
+		city_link = '<a href="/browse/%s?cuisine=%s">%s</a>' % (city, cuisine, city_key.get().city)
+		rest_link = '<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, rest, cuisine, rest_key.get().name)
+		pathway = '<a href="/">HOME</a> &gt %s &gt %s &gt %s' % (city_link, rest_link, photo_key.get().name)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
+
 class AddNewRestaurant(BaseHandler):
 	def get(self, city):
 		cuisine = self.request.get('cuisine')
+		city_key = ndb.Key('City', int(city))
 		active = "restaurant"
 		writeNav(self, active)
 		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city, cuisine))
-		self.response.write('</p><a href="/browse/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, cuisine))
-		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt <a href="/browse/%s?cuisine=%s">%s</a> &gt Add New Restaurant' % (city, cuisine, city_key.get().city)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 class PostRestaurant2(webapp2.RequestHandler):
-    def post(self, city):
-    	cuisine = self.request.get('cuisine')
-        rkey = ndb.Key('City', int(city))
-        #this makes sure that adversary cannot insert restaurant into non-existing City in the database
-        if rkey.get() == None:
-            self.redirect('/')
-        else:
-            r = Restaurant(parent= rkey)
-            r.name = self.request.get('rest_name')
-            r.cuisine = self.request.get('rest_type')
-            r.postcode = self.request.get('rest_postcode')
-            r.phone = self.request.get('rest_phone')
-            r.put()
-            check2 = False
-            while check2 == False:
-                result = Restaurant.query(ancestor = ndb.Key('City', int(city))).filter(Restaurant.name == r.name)
-                for r in result:
-                    check2 = True
-                    self.redirect('/browse/%s?cuisine=%s' % (city, cuisine))
+	def post(self, city):
+		cuisine = self.request.get('cuisine')
+		rkey = ndb.Key('City', int(city))
+		#this makes sure that adversary cannot insert restaurant into non-existing City in the database
+		if rkey.get() == None:
+			self.redirect('/')
+		else:
+			r = Restaurant(parent= rkey)
+			r.name = self.request.get('rest_name')
+			r.cuisine = self.request.get('rest_type')
+			r.postcode = self.request.get('rest_postcode')
+			r.phone = self.request.get('rest_phone')
+			r.put()
+			check2 = False
+			while check2 == False:
+				result = Restaurant.query(ancestor = ndb.Key('City', int(city))).filter(Restaurant.name == r.name)
+				for r in result:
+					check2 = True
+					self.redirect('/browse/%s?cuisine=%s' % (city, cuisine))
 	
 
 
@@ -929,15 +942,19 @@ class AddNewDish(BaseHandler, ):
 
   def _serve_page(self, city, rest, invalid_price=False):
     cuisine = self.request.get('cuisine')
+    rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+    city_key = ndb.Key('City', int(city))
     active = "dish"
     writeNav(self, active)
     error = "<p></p>"
     if invalid_price:
       error = "<p style='color:red;'>Please enter a valid price (eg 10.00) </p>"
     self.response.out.write(ADD_NEW_DISH_TEMPLATE.format(city, rest, cuisine, error))
-    self.response.write('</p><a href="/browse/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, cuisine))
-    self.response.write('</div>')
-    self.response.write(FOOTER_TEMPLATE)
+
+    city_link = '<a href="/browse/%s?cuisine=%s">%s</a>' % (city, cuisine, city_key.get().city)
+    rest_link = '<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, rest, cuisine, rest_key.get().name)
+    pathway = '<a href="/">HOME</a> &gt %s &gt %s &gt Add New Dish' % (city_link, rest_link)
+    self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 					
 ##################################
@@ -946,13 +963,16 @@ class AddNewDish(BaseHandler, ):
 class uploadPhotoPage(BaseHandler):
     def get(self, city, rest, dish):
 		cuisine = self.request.get('cuisine')
+		photo_key = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
+		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+		city_key = ndb.Key('City', int(city))
 		upload_url = blobstore.create_upload_url('/upload/%s/%s/%s?cuisine=%s' % (city, rest, dish, cuisine))
 		active = "upload"
 		writeNav(self, active)
 		self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
 		self.response.out.write("""
 				<div class="input_form">
-					<h1>Upload Photo</h1>
+					<h1>Upload Image</h1>
 					<form action="/postdish2/%s/%s?cuisine=%s" method="POST">
 						<input type="file" name="file" placeholder="Browse..." required/>
 						<textarea name="review" rows="3" cols="60" placeholder="Write a Review"></textarea>
@@ -973,12 +993,14 @@ class uploadPhotoPage(BaseHandler):
 						<input type="submit"name="submit" value="Submit">
 					</form>
 				</div>
-
+			</div>
                  
             """)
-		self.response.write('</p><a href="/browse/%s/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, dish, cuisine))
-		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
+		city_link = '<a href="/browse/%s?cuisine=%s">%s</a>' % (city, cuisine, city_key.get().city)
+		rest_link = '<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, rest, cuisine, rest_key.get().name)
+		photo_link = '<a href="/browse/%s/%s/%s?cuisine=%s">%s</a>' % (city, rest, dish, cuisine, photo_key.get().name)
+		pathway = '<a href="/">HOME</a> &gt %s &gt %s &gt %s &gt Upload Image' % (city_link, rest_link, photo_link)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 
 

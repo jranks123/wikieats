@@ -77,6 +77,36 @@ float:left;
   background-color: rgba(0,0,0,.15);
 }
 
+.pathway{
+	margin-left: 20px;
+	position:fixed;
+	font-family:Arial;
+	font-size:30px;
+	color:white;
+	z-index:100;
+	bottom:0px;
+	height:60px;
+}
+
+.pathway  a{
+	text-decoration:none;
+	color:white;
+}
+
+.pathway  a:active{
+	text-decoration:none;
+	color:white;
+}
+
+.pathway  a:hover{
+	text-decoration:underline;
+	color:white;
+}
+
+.pathway  a:visited{
+	text-decoration:none;
+	color:white;
+}
 
 #cssmenu form input[type="submit"]{
 	position: relative;
