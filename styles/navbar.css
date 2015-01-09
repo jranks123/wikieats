@@ -11,17 +11,17 @@
 }
 
 #cssmenu form {
-position: relative;
-top: 11px;
-width:600px;
-float:left;
-  list-style: none;
-  margin: auto;
-  margin-left:10px;
-  padding: 0;
-  line-height: 1;
-  display: block;
-  zoom: 1;
+	position: relative;
+	top: 11px;
+	width:790px;
+	float:left;
+	list-style: none;
+	margin: auto;
+	margin-left:10px;
+	padding: 0;
+	line-height: 1;
+	display: block;
+	zoom: 1;
 }
 
 #cssmenu form select{
@@ -83,9 +83,9 @@ float:left;
 	font-family:Arial;
 	font-size:30px;
 	color:white;
-	z-index:100;
-	bottom:0px;
-	height:45px;
+	z-index:120;
+	top:50px;
+	left:100px;
 }
 
 .pathway  a{
@@ -123,6 +123,32 @@ float:left;
 	-webkit-border-radius: 5px;
 	font-size: 17px;
 	transition: all 0.3s ease;
+}
+
+#cssmenu form a{
+	position: relative;
+	text-decoration:none;
+	font-family:Arial;
+	text-align:center;
+	display: inline-block;
+	vertical-align: middle;
+	width: 200px;
+	height:30px;
+	cursor: pointer;
+	color: #fff;
+	border: 0px;
+	margin: auto;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	font-size: 17px;
+	transition: all 0.3s ease;
+	background-color: lightgray;
+	margin-left:20px;
+}
+
+#cssmenu form a div{
+	padding:7px 0;
 }
 
 #cssmenu ul {

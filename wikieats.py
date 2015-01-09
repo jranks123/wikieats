@@ -523,18 +523,21 @@ NAV_2 = """
 			</select>
 			</span>
 			<input type="submit" value="GO" id="goButton">
+			<a href="/advancedSearch"><div>ADVANCED SEARCH</div></a>
       <script type="text/javascript">
-        $('#goButton').hide();
-        $('#city_link').on('change', function (e) {
-          var optionSelected = $("option:selected", this);
-          var text = optionSelected.text();
-          if(text == "Select City"){
-          console.log("helo");
-          $('#goButton').hide();
-          }else{
-            $('#goButton').show();
+        var optionSelected = $("#city_link option:selected").text()
+       
+        if(optionSelected == "SelectCity"){
+           $('#goButton').hide();
         }
-      });
+         
+        $("#goButton").click(function(event){
+          var optionSelected = $("#city_link option:selected").text()
+          if(optionSelected == "Select City"){
+            alert('Please select a City');
+            event.preventDefault();
+          }
+        });
       </script>
 		</form>
 		
@@ -751,12 +754,12 @@ class BrowseCities(BaseHandler):
 			rest_name = r.name
 			c = r.key.parent().get()
 			city = c.city
-			blob_info = blobstore.BlobInfo.get(p.blob_key)
-			self.response.write('<li><div style="font-size:20px; font-family:Arial;"><p style="text-align:center;"><strong>%s (%s)</strong></p><p style="text-align:center;">%s</p></div><img src="/serve/%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div></li>' % (rest_name, city, dish_name, p.blob_key, p.rating))
+			photo_url = images.get_serving_url(p.blob_key, size=None, crop=False, secure_url=None)
+			self.response.write('<li><a href="/browse/%s/%s/%s?cuisine=all" style="text-decoration:none;"><div style="font-size:20px; font-family:Arial;"><p style="text-align:center;"><strong>%s (%s)</strong></p><p style="text-align:center;">%s</p></div><img src="%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div></a></li>' % (c.key.id(), r.key.id(), d.key.id(), rest_name, city, dish_name, photo_url, p.rating))
 		self.response.write('</ul>')
 
 		self.response.write('</div>')
-		pathway = ""
+		pathway = "HOME"
 		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 
@@ -770,19 +773,20 @@ class SelectCity(webapp2.RequestHandler):
 			self.redirect('/browse/%s?cuisine=%s' % (city_link, cuisine))
 
 class advancedSearch(BaseHandler):
-  def get (self):
-    writeNav(self, "browse")
-    writeAdvanced(self)
-    self.response.write(FOOTER_TEMPLATE)
+	def get (self):
+		writeNav(self, "browse")
+		writeAdvanced(self)
+		pathway = '<a href="/">HOME</a> &gt Advanced Search'
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
-  def post(self):
-    city = self.request.get("city_link_adv")
-    dish = self.request.get("dish_name")
-    price = self.request.get("price") 
-    postcode = self.request.get("postcode")
-    distance = self.request.get("distance_select")
+	def post(self):
+		city = self.request.get("city_link_adv")
+		dish = self.request.get("dish_name")
+		price = self.request.get("price") 
+		postcode = self.request.get("postcode")
+		distance = self.request.get("distance_select")
 
-    self.redirect('/advancedSearch/result?city=%s&dish=%s&price=%s&postcode=%s&distance=%s' % (city, dish, price, postcode, distance))
+		self.redirect('/advancedSearch/result?city=%s&dish=%s&price=%s&postcode=%s&distance=%s' % (city, dish, price, postcode, distance))
 
 
 class advancedSearchResult(BaseHandler):
@@ -904,6 +908,8 @@ class advancedSearchResult(BaseHandler):
       self.response.write("NO RESULTS")
 
     self.response.write('<a href="/advancedSearch?city=%s&dish=%s&price=%s&postcode=%s&distance=%s"><input class="addtolist" value="Try again"></a></p>' % (city, dish, price, postcode, distance))
+    pathway = '<a href="/">HOME</a> &gt <a href="/advancedSearch">Advanced Search</a> &gt Results'
+    self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 
 
@@ -1067,8 +1073,8 @@ class DisplayDish(BaseHandler):
 		self.response.write('<ul class="rig">')
 		for p in result:
 			check = True
-			blob_info = blobstore.BlobInfo.get(p.blob_key)
-			self.response.write('<li><img src="/serve/%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div><p>%s</p></li>' % (p.blob_key, p.rating, p.review))
+			photo_url = images.get_serving_url(p.blob_key, size=None, crop=False, secure_url=None)
+			self.response.write('<li><img src="%s" class="photo"/></br><div style="display: inline-block; "><div style="float:left; width: 100px; "><img src="/images/%s_star.png" style="display:inline;" height="20px" width="100px"></div></div><p>%s</p></li>' % (photo_url, p.rating, p.review))
 		self.response.write('</ul>')
 		
 		if check == False:
