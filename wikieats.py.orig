@@ -205,7 +205,8 @@ class SignupHandler(BaseHandler):
 		active = "register"
 		writeNav(self, active)
 		self.response.write(SIGNUP_TEMPLATE)
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt Register'
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 	def post(self):
 		user_name = self.request.get('username')
@@ -218,7 +219,7 @@ class SignupHandler(BaseHandler):
 			email_address=email, name=user_name, password_raw=password,
 			verified=False)
 		if not user_data[0]: #user_data is a tuple
-			self.display_message('Unable to create user for email %s because of duplicate keys %s' % (user_name, user_data[1]))
+			self.display_message('Unable to create user for user %s because of duplicate keys %s' % (user_name, user_data[1]))
 			return
 		
 		user = user_data[1]
@@ -239,7 +240,7 @@ class ConfirmEmailSent(BaseHandler):
 		active = "emailsent"
 		writeNav(self, active)
 		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>A Confirmation email has been sent to your email address.</p><p>Please follow the attached link to validate your account.</p></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 	
 class ForgotPasswordHandler(BaseHandler):
 	def get(self):
@@ -260,20 +261,6 @@ class ForgotPasswordHandler(BaseHandler):
 		verification_url = self.uri_for('verification', type='p', user_id=user_id,
 			signup_token=token, _full=True)
 
-<<<<<<< HEAD
-    self.display_message(msg.format(url=verification_url))
-  
-  def _serve_page(self, not_found=False):
-    username = self.request.get('username')
-    active = "forgot"
-    writeNav(self, active)
-    self.response.write('<div class="input_form"><h1>Recover password</h1><p>Forgot your password? Click the link below to receive a link to recover your password.</p>')
-    if not_found:
-      self.response.write('<strong>Not found!</strong> We could not found any user with the given username.')
-    self.response.write(FORGOT_TEMPLATE % username)
-    self.response.write('</div>')
-    self.response.write(FOOTER_TEMPLATE)
-=======
 		message = mail.EmailMessage(sender="WikiEats Admin<wiki-eats@appspot.gserviceaccount.com>",subject="Password Reset Email",to="%s <%s>"% (user.name,user.email_address))
 		message.body = PASSWORD_RESET_EMAIL % (user.name,verification_url)
 		message.send()
@@ -289,15 +276,15 @@ class ForgotPasswordHandler(BaseHandler):
 			self.response.write('<p style="color:red"><strong>Not found!</strong> We could not find any user with the given username.</p>')
 		self.response.write(FORGOT_TEMPLATE % username)
 		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
->>>>>>> newricky
+		pathway = '<a href="/">HOME</a> &gt <a href="/">Login</a> &gt Forgot Password'
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 class ForgotEmailSent(BaseHandler):
 	def get(self):
 		active = "emailsent"
 		writeNav(self, active)
 		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>A Verification email has been sent to your email address.</p><p>Please follow the attached link to reset your password.</p></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 class VerificationHandler(BaseHandler):
   def get(self, *args, **kwargs):
@@ -310,8 +297,7 @@ class VerificationHandler(BaseHandler):
     # self.auth.get_user_by_token(user_id, signup_token)
     # unfortunately the auth interface does not (yet) allow to manipulate
     # signup tokens concisely
-    user, ts = self.user_model.get_by_auth_token(int(user_id), signup_token,
-      'signup')
+    user, ts = self.user_model.get_by_auth_token(int(user_id), signup_token, 'signup')
 
     if not user:
       logging.info('Could not find any user with id "%s" signup token "%s"',
@@ -328,15 +314,18 @@ class VerificationHandler(BaseHandler):
       if not user.verified:
         user.verified = True
         user.put()
-
-      self.display_message('User email address has been verified.')
+      
+      active = "emailverified"
+      writeNav(self, active)
+      self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>Your email address has been verified.</p></div>')
+      self.response.write(FOOTER_TEMPLATE.format(""))
       return
     elif verification_type == 'p':
       # supply user to the page
       active = "verify"
       writeNav(self, active)
       self.response.write(RESET_PASSWORD_TEMPLATE %(signup_token))
-      self.response.write(FOOTER_TEMPLATE)
+      self.response.write(FOOTER_TEMPLATE.format(""))
     else:
       logging.info('verification type not supported')
       self.abort(404)
@@ -365,7 +354,7 @@ class PasswordUpdated(BaseHandler):
 		active = "passwordupdated"
 		writeNav(self, active)
 		self.response.write('<div style="margin-top:50px; font-family: Arial; font-size: 30px; text-align:center;"><p>Your password has been successfully updated!</p></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 class LoginHandler(BaseHandler):
   def get(self):
@@ -392,7 +381,9 @@ class LoginHandler(BaseHandler):
       self.response.write('<p><strong>Login failed!</strong> Check your credentials and try again.</p>')
 
     self.response.write(LOGIN_TEMPLATE % (username))
-    self.response.write(FOOTER_TEMPLATE)
+	
+    pathway = '<a href="/">HOME</a> &gt Login'
+    self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 class LogoutHandler(BaseHandler):
   def get(self):
@@ -422,6 +413,7 @@ HEADER_TEMPLATE = """
 		<link rel="stylesheet" type="text/css" href="/styles/navbar.css">
 		<link rel="stylesheet" type="text/css" href="/styles/login.css">
 		<link rel="stylesheet" type="text/css" href="/styles/list.css">
+    <link rel="stylesheet" type="text/css" href="/styles/advanced.css">
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 	</head>
 	<body>
@@ -435,10 +427,76 @@ HEADER_TEMPLATE = """
 
 FOOTER_TEMPLATE = """
 			</div>
-			<div style="position:fixed; left:0px; bottom:0px; height:30px; width:100%; background:#15967E; z-index:100; "></div>
+			<div style="position:fixed; left:0px; bottom:0px; height:100px; width:100%; background:#15967E; z-index:100; ">
+				<div class="pathway">
+					{0}
+				</div>
+			</div>
 		</body>
 	</html>
 """
+
+ADVANCED_TEMPLATE_1 = """
+  <div class="input_form">
+    <h1>Advanced Search</h1>
+    <form action="/advancedSearch" method="post">
+          <select name="city_link_adv"> 
+          <option value="none" class="noselect">Select City</option>
+  """
+
+ADVANCED_TEMPLATE_2 = """
+        </select>
+        <input type="text" name="dish_name" placeholder="Name of dish" class="required" required/>  
+        <select name="price_select" id="price_select"> 
+          <option value="anyPrice">Any Price</option>
+          <option value="lessThan">Less Than</option>
+        </select>
+        <input type="text" name="price" id="price" placeholder="&pound">
+        <select name="distance_select" id="distance_select"> 
+          <option value="anyDistance">Any Distance</option>
+          <option value="0.1"> &lt1 miles </option>
+          <option value="1"> &lt1 miles </option>
+          <option value="3"> &lt3 miles </option>
+          <option value="5"> &lt5 miles </option>
+          <option value="10"> &lt10 miles </option>
+        </select>
+        <input type="text" name="postcode" id="postcode" placeholder="Your Postcode">
+      <input type="submit" value="Search" />
+    </form>
+    </div>
+    <script type="text/javascript">
+
+
+
+        $('#price').hide();
+        $('#postcode').hide();
+        $('#price_select').on('change', function (e) {
+          var optionSelected = $("option:selected", this);
+          var text = optionSelected.text();
+          if(text == "Any Price"){
+            $('#price').hide();
+            $('#price').val('');
+          }else{
+           $('#price').show();
+         }
+        });
+
+        $('#distance_select').on('change', function (e) {
+          var optionSelected = $("option:selected", this);
+          var text = optionSelected.text();
+          if(text == "Any Distance"){
+            $('#postcode').hide();
+            $('#price').val('');
+          }else{
+           $('#postcode').show();
+         }
+        });
+
+      
+      </script>
+
+"""
+
 
 NAV_1 = """
 	<div id='cssmenu'>
@@ -453,15 +511,15 @@ NAV_2 = """
 			</span>
 			<span class="dropdown">
 			<select name="rest_type" id="rest_type"> <option value="all">All Cuisines</option>
-				<option value="indian">Indian</option>
-				<option value="pizza">Pizza</option>
-				<option value="chinese">Chinese</option>
-				<option value="kebab">Kebab</option>
-				<option value="italian">Italian</option>
-				<option value="fishandchips">Fish & Chips</option>
-				<option value="america">American</option>
-				<option value="chicken">Chicken</option>
-				<option value="carribean">Carribean</option>
+				<option value="Indian">Indian</option>
+				<option value="Pizza">Pizza</option>
+				<option value="Chinese">Chinese</option>
+				<option value="Kebab">Kebab</option>
+				<option value="Italian">Italian</option>
+				<option value="Fishandchips">Fish & Chips</option>
+				<option value="American">American</option>
+				<option value="Chicken">Chicken</option>
+				<option value="Carribean">Carribean</option>
 			</select>
 			</span>
 			<input type="submit" value="GO" id="goButton">
@@ -484,6 +542,7 @@ NAV_2 = """
 """
 
 ADD_NEW_RESTAURANT_TEMPLATE = """
+<<<<<<< HEAD
 	<div class="input_form">
 		<h1>Add Restaurant</h1>
 		<form action="/postrestaurant2/%s?cuisine=%s" method="POST">
@@ -499,22 +558,58 @@ ADD_NEW_RESTAURANT_TEMPLATE = """
 				<option value="chicken">Chicken</option>
 				<option value="carribean">Carribean</option>
 			</select>
-			<input type="text" name="rest_postcode" placeholder="Postcode"/>
+			<input type="text" name="rest_postcode" placeholder="Postcode" required/>
 			<input type="text" name="rest_phone" placeholder="Phone Number"/>
 			<input type="submit" value="Submit" />
 		</form>
+=======
+		<div class="input_form">
+			<h1>Add Restaurant</h1>
+			<form action="/postrestaurant2/%s?cuisine=%s" method="POST">
+				<input type="text" name="rest_name" placeholder="Restaurant Name" required/>
+				<select name="rest_type">
+					<option value="Indian">Indian</option>
+					<option value="Pizza">Pizza</option>
+					<option value="Chinese">Chinese</option>
+					<option value="Kebab">Kebab</option>
+					<option value="Italian">Italian</option>
+					<option value="Fishandchips">Fish & Chips</option>
+					<option value="American">American</option>
+					<option value="Chicken">Chicken</option>
+					<option value="Carribean">Carribean</option>
+				</select>
+				<input type="text" name="rest_postcode" placeholder="Postcode"/>
+				<input type="text" name="rest_phone" placeholder="Phone Number"/>
+				<input type="submit" value="Submit" />
+			</form>
+		</div>
+>>>>>>> newricky
 	</div>
 """
 
+
+
 ADD_NEW_DISH_TEMPLATE = """
+<<<<<<< HEAD
 	<div class="input_form">
 		<h1>Add Dish</h1>
     {3}
 		<form action="/addnewdish/{0}/{1}?cuisine={2}" method="POST">
 			<input type="text" name="dish_name" placeholder="Name of Dish" required/>
-			<input type="text" name="dish_price" placeholder="Price (&pound)"/>
+			<input type="text" name="dish_price" placeholder="Price (&pound)" required/>
 			<input type="submit" value="Submit" />
 		</form>
+=======
+		<div class="input_form">
+			<h1>Add Dish</h1>
+			{3}
+			<form action="/addnewdish/{0}/{1}?cuisine={2}" method="POST">
+				<input type="text" name="dish_name" placeholder="Name of Dish" required/>
+				<input type="text" name="dish_price" placeholder="Price (&pound)"/>
+				<input type="submit" value="Submit" />
+			</form>
+		</div>
+>>>>>>> newricky
 	</div>
 """
 
@@ -537,7 +632,7 @@ class admin(webapp2.RequestHandler):
 		self.response.write('<input type = "submit" value = "Add All Cities From File"></form>')
 		self.response.write('<form action="/clearDatabase" method="post">')
 		self.response.write('<input type = "submit" value = "Clear Database"></form>')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 class addAllCities(webapp2.RequestHandler):
 	def post(self):
@@ -567,9 +662,8 @@ class clearDatabase(webapp2.RequestHandler):
 
 class postcode(webapp2.RequestHandler):
 	def get(self):
-		self.response.write(HEADER_TEMPLATE)
 		self.response.write(ENTER_POSTCODE_TEMPLATE)
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 
 class getPostcodeDistance(webapp2.RequestHandler):
@@ -577,13 +671,12 @@ class getPostcodeDistance(webapp2.RequestHandler):
 		post1 = urllib.quote_plus(self.request.get('postcode1'))
 		post2 = urllib.quote_plus(self.request.get('postcode2'))
 		data = json.load(urllib2.urlopen('http://maps.googleapis.com/maps/api/distancematrix/json?origins='+post1+'&destinations='+post2+'&mode=driving&language=en-EN&sensor=false"'))
-		self.response.write(HEADER_TEMPLATE)
 		if(data["rows"][0]["elements"][0]["status"] == 'OK'):
 		#self.response.write(data)
 			self.response.write(data["rows"][0]["elements"][0]["distance"]["value"] * 0.000621371)
 		else:
 			self.response.write('invalid postcode')
-		self.response.write(FOOTER_TEMPLATE)
+		self.response.write(FOOTER_TEMPLATE.format(""))
 
 
 
@@ -603,7 +696,7 @@ class Restaurant(ndb.Model):
 
 class Dish(ndb.Model):
 	name = ndb.StringProperty(required=True)
-	price = ndb.StringProperty(required=True)
+	price = ndb.FloatProperty(required=True)
 	averageRating = ndb.FloatProperty(required=True)
 	numberOfPhotos = ndb.IntegerProperty(required=True)
 
@@ -637,6 +730,12 @@ def starRating(self, rating):
 	elif  rating == 5:
 		self.response.write('<img src="/images/5_star.png" style="display:inline;" height="40px" width="200px">')
 
+def writeAdvanced(self):
+  self.response.write(ADVANCED_TEMPLATE_1)
+  cities = City.query().order(City.city)
+  for c in cities:
+      self.response.write('<option value="%s">%s</option>' % (c.key.id(), c.city))
+  self.response.write(ADVANCED_TEMPLATE_2)
 
 
 def writeNav(self, active):
@@ -652,16 +751,16 @@ def writeNav(self, active):
 		if u:
 			greeting = ('<li class="last"><a href="/logout"><span>Logout</span></a></li>')
 		elif active == "login":
-			greeting = ('<li class="active"><a href="/login"><span>Sign In</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
+			greeting = ('<li class="active"><a href="/login"><span>Login</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
 		elif active == "register":
-			greeting = ('<li><a href="/login"><span>Sign In</span></a></li><li class="active last"><a href="/signup"><span>Register</span></a></li>')
+			greeting = ('<li><a href="/login"><span>Login</span></a></li><li class="active last"><a href="/signup"><span>Register</span></a></li>')
 		else:
-			greeting = ('<li><a href="/login"><span>Sign In</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
+			greeting = ('<li><a href="/login"><span>Login</span></a></li><li class="last"><a href="/signup"><span>Register</span></a></li>')
 		self.response.write(greeting)
 		
 		self.response.write('</ul></div>')
 		
-		self.response.write('<div style="position:relative; top:175px; margin-bottom:50px;">')
+		self.response.write('<div style="position:relative; top:175px; margin-bottom:120px;">')
 
 		
 ##############################
@@ -690,19 +789,157 @@ class BrowseCities(BaseHandler):
 		self.response.write('</ul>')
 
 		self.response.write('</div>')
-		
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = ""
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 
 class SelectCity(webapp2.RequestHandler):
-    def post(self):
+  def post(self):
 		city_link = self.request.get('city_link')
 		cuisine = self.request.get('rest_type')
 		if(city_link == "none"):
 			self.redirect('/browse')
 		else:
 			self.redirect('/browse/%s?cuisine=%s' % (city_link, cuisine))
-		
+
+class advancedSearch(BaseHandler):
+  def get (self):
+    writeNav(self, "browse")
+    writeAdvanced(self)
+    self.response.write(FOOTER_TEMPLATE)
+
+  def post(self):
+    city = self.request.get("city_link_adv")
+    dish = self.request.get("dish_name")
+    price = self.request.get("price") 
+    postcode = self.request.get("postcode")
+    distance = self.request.get("distance_select")
+
+    self.redirect('/advancedSearch/result?city=%s&dish=%s&price=%s&postcode=%s&distance=%s' % (city, dish, price, postcode, distance))
+
+
+class advancedSearchResult(BaseHandler):
+  def get(self, result):
+    sorted = self.request.get('order')
+    writeNav(self, "browse")
+    city = self.request.get('city')
+    dish = self.request.get('dish')
+    price = self.request.get('price')
+    postcode = self.request.get('postcode')
+    distance = self.request.get('distance')
+    city_key = ndb.Key('City', int(city))
+    result = Dish.query(ancestor=city_key)
+
+    if sorted == "zyx":
+      ordering = -Dish.name
+    elif sorted == "top":
+      ordering = -Dish.averageRating
+    elif sorted == "bottom":
+      ordering = Dish.averageRating
+    elif sorted == "high":
+      ordering = -Dish.price
+    elif sorted == "low":
+      ordering = Dish.price
+    else:
+      ordering = -Dish.averageRating
+
+    result = result.order(ordering)
+    check = False
+    self.response.write('<div class="liststatus">Showing all "%s" dishes in %s' % (dish, city_key.get().city))
+    if price:
+      self.response.write(' for under &pound%s' % price)
+    if postcode:
+      self.response.write(', within %s miles of %s' % (distance, postcode))
+    self.response.write('<form action="/advancedSearch/result" method="GET" class="sortorder"><select name="order" onchange="this.form.submit()">')
+
+    
+    self.response.write('<option value="top"')
+    if sorted == "top":
+      self.response.write('selected')
+    self.response.write('>Rating (High-Low)</option>')
+    
+    
+    self.response.write('<option value="bottom"')
+    if sorted == "bottom":
+      self.response.write('selected')
+    self.response.write('>Rating (Low-High)</option>')
+
+    self.response.write('<option value="abc"')
+    if sorted == "abc":
+      self.response.write('selected')
+    self.response.write('>Alphabetical (A-Z)</option>')
+    
+    
+    self.response.write('<option value="zyx"')
+    if sorted == "zyx":
+      self.response.write('selected')
+    self.response.write('>Alphabetical (Z-A)</option>')
+    
+    
+    
+    self.response.write('<option value="high"')
+    if sorted == "high":
+      self.response.write('selected')
+    self.response.write('>Price (High-Low)</option>')
+    
+    
+    self.response.write('<option value="low"')
+    if sorted == "low":
+      self.response.write('selected')
+    self.response.write('>Price (Low-High)</option>')
+    
+    self.response.write('<input type="hidden" value="%s" name="city">' % (city))
+    self.response.write('<input type="hidden" value="%s" name="dish">' % (dish))
+    self.response.write('<input type="hidden" value="%s" name="price">' % (price))
+    self.response.write('<input type="hidden" value="%s" name="postcode">' % (postcode))
+    self.response.write('<input type="hidden" value="%s" name="distance">' % (distance))
+    self.response.write('</select></form>')
+    self.response.write('</div>')
+    if result:
+      anyDishFound = False;
+      self.response.write('<div class="listdisplay">')
+      for r in result:
+        dishFound = False
+        if dish in r.name:
+          restaurant = r.key.parent().get()
+          if postcode:
+            post1 = urllib.quote_plus(postcode)
+            post2 = urllib.quote_plus(restaurant.postcode)
+            data = json.load(urllib2.urlopen('http://maps.googleapis.com/maps/api/distancematrix/json?origins='+post1+'&destinations='+post2+'&mode=driving&language=en-EN&sensor=false"'))
+            if data:
+              if(data["rows"][0]["elements"][0]["status"] == 'OK'):
+                postDifference = data["rows"][0]["elements"][0]["distance"]["value"] * 0.000621371
+                if (float(postDifference)) < float(distance):
+                  if price:
+                    if(float(r.price) < float(price)):
+                      dishFound = True
+                  else:
+                    dishFound = True
+              else:
+                self.response.write('invalid postcode')
+          elif price:
+            if(float(r.price) < float(price)):
+              dishFound = True
+          else:
+            dishFound = True
+        if dishFound == True:
+          self.response.write('<div><a href="/browse/%s/%s/%s?cuisine=all"> <strong>%s</strong> - %s (&pound%.2f) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, r.key.parent().id(), r.key.id(), restaurant.name, r.name, r.price))
+          avg_rating = r.averageRating
+          if avg_rating:
+            rounded = round(avg_rating * 2) / 2
+            starRating(self, rounded)
+          self.response.write('</div></div></a></div>')
+          anyDishFound = True
+      if anyDishFound == False:
+        self.response.write("NO RESULTS")
+      self.response.write('</div>')
+    else:
+      self.response.write("NO RESULTS")
+
+    self.response.write('<a href="/advancedSearch?city=%s&dish=%s&price=%s&postcode=%s&distance=%s"><input class="addtolist" value="Try again"></a></p>' % (city, dish, price, postcode, distance))
+
+
+
 class BrowseRestaurants(BaseHandler):
 	def get(self, city):
 		cuisine = self.request.get('cuisine')
@@ -731,7 +968,7 @@ class BrowseRestaurants(BaseHandler):
 			self.response.write('selected')
 		self.response.write('>Alphabetical (Z-A)</option>')
 		
-		self.response.write('<input type="hidden" value="%s" name="cuisine"' % (cuisine))
+		self.response.write('<input type="hidden" value="%s" name="cuisine">' % (cuisine))
 		self.response.write('</select></div><div class="listdisplay">')
 		for r in result:
 			if(r.cuisine == cuisine or cuisine == 'all'):
@@ -746,15 +983,16 @@ class BrowseRestaurants(BaseHandler):
 		u = self.auth.get_user_by_session()
 		if u:
 			self.response.write('<a href="/addnewrestaurant/%s?cuisine=%s"><input class="addtolist" value="ADD NEW RESTAURANT"></a></p>' % (city, cuisine))
-			
-		self.response.write('<a class="backbutton "href="/browse">BACK</a></div>')
-		self.response.write(FOOTER_TEMPLATE)
+		
+		pathway = '<a href="/">HOME</a> &gt ' + city_key.get().city
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 class BrowseDishes(BaseHandler):
 	def get(self, city, rest):
 		cuisine = self.request.get('cuisine')
 		sorted = self.request.get('order')
 		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+		city_key = ndb.Key('City', int(city))
 		
 		if sorted == "zyx":
 			ordering = -Dish.name
@@ -818,7 +1056,7 @@ class BrowseDishes(BaseHandler):
 			check = True
 			#Here we need to make it display stars instead of the number
 			d = Dish.get_by_id(d.key.id(), d.key.parent())
-			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%s) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, rest, d.key.id(), cuisine, d.name, d.price))
+			self.response.write('<a href="/browse/%s/%s/%s?cuisine=%s">%s (&pound%.2f) <div style="display:inline-block; float:right"><div style="display:table-cell; vertical-align;">' % (city, rest, d.key.id(), cuisine, d.name, d.price))
 			
 			avg_rating = d.averageRating
 			if avg_rating:
@@ -835,20 +1073,22 @@ class BrowseDishes(BaseHandler):
 		if u:
 			self.response.write('<a  href="/addnewdish/%s/%s?cuisine=%s"><input class="addtolist" value="ADD NEW DISH"></a></p>' % (city, rest, cuisine))
 		
-		self.response.write('<a class="backbutton" href="/browse/%s?cuisine=%s">BACK</a></div>' % (city, cuisine))
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt <a href="/browse/%s?cuisine=%s">%s</a> &gt %s' % (city, cuisine, city_key.get().city, rest_key.get().name)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 class DisplayDish(BaseHandler):
 	def get(self, city, rest, dish):
 		cuisine = self.request.get('cuisine')
 		photo_key = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
+		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+		city_key = ndb.Key('City', int(city))
 		result = Photo.query(ancestor = photo_key).order(-Photo.created).fetch(10)
 		check = False
 		active = "display"
 		writeNav(self, active)
 		d = Dish.get_by_id(photo_key.id(), photo_key.parent())
 		self.response.write('<div style="display: inline-block; ">')
-		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%s</p></div>' % (d.name, d.price))
+		self.response.write('<div style="margin: auto; float: left; display: inline-block; width: 600px;"><p style=" padding-left: 40px; font-size: 40px; font-family: \'Lucida Console\', \'Lucida Sans Typewriter\', monaco, \'Bitstream Vera Sans Mono\', monospace;"><b>%s </b>&pound%.2f</p></div>' % (d.name, d.price))
 
 		avg_rating = d.averageRating
 		if avg_rating:
@@ -871,44 +1111,42 @@ class DisplayDish(BaseHandler):
 		u = self.auth.get_user_by_session()
 		if u:
 			self.response.write('<a href="/uploadPhotoPage/%s/%s/%s?cuisine=%s"><input class="addtolist" value="Upload"></a></p>' % (city, rest, dish, cuisine))
-		
-		self.response.write('<a class="backbutton" href="/browse/%s/%s?cuisine=%s">BACK</a></div>' % (city, rest, cuisine))
-		self.response.write(FOOTER_TEMPLATE)
-	
-	
-#########################################
-########## ADD WHILST BROWSING ##########
-#########################################
+			
+		city_link = '<a href="/browse/%s?cuisine=%s">%s</a>' % (city, cuisine, city_key.get().city)
+		rest_link = '<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, rest, cuisine, rest_key.get().name)
+		pathway = '<a href="/">HOME</a> &gt %s &gt %s &gt %s' % (city_link, rest_link, photo_key.get().name)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
+
 class AddNewRestaurant(BaseHandler):
 	def get(self, city):
 		cuisine = self.request.get('cuisine')
+		city_key = ndb.Key('City', int(city))
 		active = "restaurant"
 		writeNav(self, active)
 		self.response.out.write(ADD_NEW_RESTAURANT_TEMPLATE % (city, cuisine))
-		self.response.write('</p><a href="/browse/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, cuisine))
-		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
+		pathway = '<a href="/">HOME</a> &gt <a href="/browse/%s?cuisine=%s">%s</a> &gt Add New Restaurant' % (city, cuisine, city_key.get().city)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 		
 class PostRestaurant2(webapp2.RequestHandler):
-    def post(self, city):
-    	cuisine = self.request.get('cuisine')
-        rkey = ndb.Key('City', int(city))
-        #this makes sure that adversary cannot insert restaurant into non-existing City in the database
-        if rkey.get() == None:
-            self.redirect('/')
-        else:
-            r = Restaurant(parent= rkey)
-            r.name = self.request.get('rest_name')
-            r.cuisine = self.request.get('rest_type')
-            r.postcode = self.request.get('rest_postcode')
-            r.phone = self.request.get('rest_phone')
-            r.put()
-            check2 = False
-            while check2 == False:
-                result = Restaurant.query(ancestor = ndb.Key('City', int(city))).filter(Restaurant.name == r.name)
-                for r in result:
-                    check2 = True
-                    self.redirect('/browse/%s?cuisine=%s' % (city, cuisine))
+	def post(self, city):
+		cuisine = self.request.get('cuisine')
+		rkey = ndb.Key('City', int(city))
+		#this makes sure that adversary cannot insert restaurant into non-existing City in the database
+		if rkey.get() == None:
+			self.redirect('/')
+		else:
+			r = Restaurant(parent= rkey)
+			r.name = self.request.get('rest_name')
+			r.cuisine = self.request.get('rest_type')
+			r.postcode = self.request.get('rest_postcode')
+			r.phone = self.request.get('rest_phone')
+			r.put()
+			check2 = False
+			while check2 == False:
+				result = Restaurant.query(ancestor = ndb.Key('City', int(city))).filter(Restaurant.name == r.name)
+				for r in result:
+					check2 = True
+					self.redirect('/browse/%s?cuisine=%s' % (city, cuisine))
 	
 
 
@@ -917,7 +1155,7 @@ class AddNewDish(BaseHandler, ):
 		self._serve_page(city, rest)
 
   def post(self, city, rest):
-    pattern = "\d+[.][0-9][0-9]"
+    pattern = "(?<!.)\d+([.]\d{2})?(?!.)"
     check = re.compile(pattern)
     if not check.search(self.request.get('dish_price')):
       self._serve_page(city, rest, invalid_price=True)
@@ -931,7 +1169,7 @@ class AddNewDish(BaseHandler, ):
     else:
       r = Dish(parent=rkey)
       r.name = self.request.get('dish_name')
-      r.price = self.request.get('dish_price')
+      r.price = float(self.request.get('dish_price'))
       r.averageRating = 0.0
       r.numberOfPhotos = 0
       r.put()
@@ -944,15 +1182,19 @@ class AddNewDish(BaseHandler, ):
 
   def _serve_page(self, city, rest, invalid_price=False):
     cuisine = self.request.get('cuisine')
+    rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+    city_key = ndb.Key('City', int(city))
     active = "dish"
     writeNav(self, active)
     error = "<p></p>"
     if invalid_price:
       error = "<p style='color:red;'>Please enter a valid price (eg 10.00) </p>"
     self.response.out.write(ADD_NEW_DISH_TEMPLATE.format(city, rest, cuisine, error))
-    self.response.write('</p><a href="/browse/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, cuisine))
-    self.response.write('</div>')
-    self.response.write(FOOTER_TEMPLATE)
+
+    city_link = '<a href="/browse/%s?cuisine=%s">%s</a>' % (city, cuisine, city_key.get().city)
+    rest_link = '<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, rest, cuisine, rest_key.get().name)
+    pathway = '<a href="/">HOME</a> &gt %s &gt %s &gt Add New Dish' % (city_link, rest_link)
+    self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 					
 ##################################
@@ -961,13 +1203,16 @@ class AddNewDish(BaseHandler, ):
 class uploadPhotoPage(BaseHandler):
     def get(self, city, rest, dish):
 		cuisine = self.request.get('cuisine')
+		photo_key = ndb.Key('City', int(city), 'Restaurant', int(rest), 'Dish' , int(dish))
+		rest_key = ndb.Key('City', int(city), 'Restaurant', int(rest))
+		city_key = ndb.Key('City', int(city))
 		upload_url = blobstore.create_upload_url('/upload/%s/%s/%s?cuisine=%s' % (city, rest, dish, cuisine))
 		active = "upload"
 		writeNav(self, active)
 		self.response.out.write('<form action="%s" method="POST" enctype="multipart/form-data">' % upload_url)
 		self.response.out.write("""
 				<div class="input_form">
-					<h1>Upload Photo</h1>
+					<h1>Upload Image</h1>
 					<form action="/postdish2/%s/%s?cuisine=%s" method="POST">
 						<input type="file" name="file" placeholder="Browse..." required/>
 						<textarea name="review" rows="3" cols="60" placeholder="Write a Review"></textarea>
@@ -988,12 +1233,14 @@ class uploadPhotoPage(BaseHandler):
 						<input type="submit"name="submit" value="Submit">
 					</form>
 				</div>
-
+			</div>
                  
             """)
-		self.response.write('</p><a href="/browse/%s/%s/%s?cuisine=%s" class="backbutton">BACK</a>' % (city, rest, dish, cuisine))
-		self.response.write('</div>')
-		self.response.write(FOOTER_TEMPLATE)
+		city_link = '<a href="/browse/%s?cuisine=%s">%s</a>' % (city, cuisine, city_key.get().city)
+		rest_link = '<a href="/browse/%s/%s?cuisine=%s">%s</a>' % (city, rest, cuisine, rest_key.get().name)
+		photo_link = '<a href="/browse/%s/%s/%s?cuisine=%s">%s</a>' % (city, rest, dish, cuisine, photo_key.get().name)
+		pathway = '<a href="/">HOME</a> &gt %s &gt %s &gt %s &gt Upload Image' % (city_link, rest_link, photo_link)
+		self.response.write(FOOTER_TEMPLATE.format(pathway))
 
 
 
@@ -1054,10 +1301,12 @@ application = webapp2.WSGIApplication([
     ('/browse/([^/]+)?', BrowseRestaurants),
     ('/browse/([^/]+)?/([^/]+)?', BrowseDishes),
     ('/browse/([^/]+)?/([^/]+)?/([^/]+)?', DisplayDish),
-	
+    ('/advancedSearch', advancedSearch),
+    ('/advancedSearch/([^/]+)?', advancedSearchResult),
+
 	##### ADD WHILST BROWSING #####
     ('/addnewrestaurant/([^/]+)?', AddNewRestaurant),
-	  ('/postrestaurant2/([^/]+)?', PostRestaurant2),
+	('/postrestaurant2/([^/]+)?', PostRestaurant2),
     ('/addnewdish/([^/]+)?/([^/]+)?', AddNewDish),
 	
 	
